@@ -6,7 +6,6 @@ import {
   Calendar,
   Camera,
   Check,
-  CheckCircle2,
   ChevronDown,
   CreditCard,
   FileText,
@@ -14,13 +13,14 @@ import {
   MapPin,
   Shield,
   Upload,
-  User,
+  User
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   Alert,
   Dimensions,
   Modal,
+  Platform,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -48,7 +48,7 @@ export default function KYCOnboarding({ navigation }: any) {
     email: '',
     mobile: '',
     dob: '',
-    dobDate: new Date(), // Storing date object for age validation
+    dobDate: new Date(),
     gender: '',
     addressLine1: '',
     city: '',
@@ -68,31 +68,36 @@ export default function KYCOnboarding({ navigation }: any) {
   /** ---------------- VALIDATION BY STEP ---------------- */
   const validateStep = () => {
     if (currentStep === 1) {
-      if (!formData.fullName.trim()) return Alert.alert('Required', 'Enter full name');
-      if (!/^\S+@\S+\.\S+$/.test(formData.email)) return Alert.alert('Invalid email', 'Enter a valid email');
-      if (!formData.dob) return Alert.alert('Required', 'Select DOB');
+      // These checks only run when the user attempts to move to the next step
+      if (!formData.fullName.trim()) return Alert.alert('Mandatory Field', 'Full Name is required');
+      if (!formData.email.trim()) return Alert.alert('Mandatory Field', 'Email Address is required');
+      if (!/^\S+@\S+\.\S+$/.test(formData.email)) return Alert.alert('Invalid format', 'Enter a valid email');
       
-      // 18+ Logic
+      // DOB mandatory check
+      if (!formData.dob) return Alert.alert('Mandatory Field', 'Date of Birth is required');
+      
+      // Age Verification: Only triggered on Continue
       const today = new Date();
       const birthDate = formData.dobDate;
       let age = today.getFullYear() - birthDate.getFullYear();
       const m = today.getMonth() - birthDate.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
-      }
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+      
       if (age < 18) return Alert.alert('Age Restriction', 'You must be at least 18 years old to proceed.');
       
-      if (!formData.gender) return Alert.alert('Required', 'Select gender');
+      if (!formData.gender) return Alert.alert('Mandatory Field', 'Gender selection is required');
     }
 
     if (currentStep === 2) {
-      if (formData.addressLine1.trim().length < 10) return Alert.alert('Required', 'Enter a valid address');
-      if (!formData.city.trim()) return Alert.alert('Required', 'Enter city');
+      if (!formData.addressLine1.trim()) return Alert.alert('Mandatory Field', 'Address is required');
+      if (formData.addressLine1.trim().length < 5) return Alert.alert('Invalid Address', 'Please enter a more detailed address');
+      if (!formData.city.trim()) return Alert.alert('Mandatory Field', 'City is required');
+      if (!formData.pincode.trim()) return Alert.alert('Mandatory Field', 'Pincode is required');
       if (!/^\d{6}$/.test(formData.pincode)) return Alert.alert('Invalid pincode', 'Enter 6-digit pincode');
     }
 
     if (currentStep === 3) {
-      if (!formData.accountType) return Alert.alert('Required', 'Select account type');
+      if (!formData.accountType) return Alert.alert('Mandatory Field', 'Please select an Account Type');
     }
 
     return true;
@@ -163,7 +168,7 @@ export default function KYCOnboarding({ navigation }: any) {
       case 1:
         return (
           <View style={styles.formContent}>
-            <Text style={styles.inputLabel}>Full Name (as per PAN)</Text>
+            <Text style={styles.inputLabel}>Full Name (as per PAN) <Text style={{color: 'red'}}>*</Text></Text>
             <View style={styles.inputWrapper}>
               <User size={20} color="#94A3B8" style={styles.inputIcon} />
               <TextInput
@@ -173,7 +178,7 @@ export default function KYCOnboarding({ navigation }: any) {
                 onChangeText={(val) => setFormData({ ...formData, fullName: val })}
               />
             </View>
-            <Text style={styles.inputLabel}>Email Address</Text>
+            <Text style={styles.inputLabel}>Email Address <Text style={{color: 'red'}}>*</Text></Text>
             <View style={styles.inputWrapper}>
               <Mail size={20} color="#94A3B8" style={styles.inputIcon} />
               <TextInput
@@ -187,14 +192,59 @@ export default function KYCOnboarding({ navigation }: any) {
             </View>
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.inputLabel}>DOB</Text>
-                <TouchableOpacity style={styles.inputWrapper} onPress={() => setShowDatePicker(true)}>
-                  <Calendar size={18} color="#94A3B8" style={styles.inputIcon} />
-                  <Text style={{ color: formData.dob ? '#0F172A' : '#94A3B8' }}>{formData.dob || 'DD/MM/YYYY'}</Text>
-                </TouchableOpacity>
+                <Text style={styles.inputLabel}>DOB <Text style={{color: 'red'}}>*</Text></Text>
+                {Platform.OS === 'web' ? (
+                  <View style={[styles.inputWrapper, { position: 'relative' }]}>
+                    <Calendar size={18} color="#94A3B8" style={[styles.inputIcon, { zIndex: 1 }]} />
+                    <input
+                      type="date"
+                      value={formData.dobDate.toISOString().split('T')[0]}
+                      onChange={(e) => {
+                        const d = new Date(e.target.value);
+                        if (!isNaN(d.getTime())) {
+                          const formatted = `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+                          setFormData({ ...formData, dob: formatted, dobDate: d });
+                        }
+                      }}
+                      style={{
+                        flex: 1,
+                        border: 'none',
+                        outline: 'none',
+                        background: 'transparent',
+                        fontSize: '15px',
+                        color: '#0F172A',
+                        fontFamily: 'inherit',
+                        cursor: 'pointer',
+                        paddingLeft: '5px',
+                        width: '100%',
+                        WebkitAppearance: 'none',
+                      }}
+                    />
+                    <style>{`
+                      input[type="date"]::-webkit-calendar-picker-indicator {
+                        display: block;
+                        background: transparent;
+                        bottom: 0;
+                        color: transparent;
+                        cursor: pointer;
+                        height: auto;
+                        left: 0;
+                        position: absolute;
+                        right: 0;
+                        top: 0;
+                        width: auto;
+                      }
+                    `}</style>
+                  </View>
+                ) : (
+                  <TouchableOpacity style={styles.inputWrapper} onPress={() => setShowDatePicker(true)}>
+                    <Calendar size={18} color="#94A3B8" style={styles.inputIcon} />
+                    <Text style={{ color: formData.dob ? '#0F172A' : '#94A3B8' }}>{formData.dob || 'DD/MM/YYYY'}</Text>
+                  </TouchableOpacity>
+                )}
               </View>
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.inputLabel}>Gender</Text>
+                <Text style={styles.inputLabel}>Gender <Text style={{color: 'red'}}>*</Text></Text>
                 <TouchableOpacity style={[styles.inputWrapper, { paddingLeft: 15 }]} onPress={() => setShowGender(true)}>
                   <Text style={{ color: formData.gender ? '#0F172A' : '#94A3B8', flex: 1 }}>{formData.gender || 'Select'}</Text>
                   <ChevronDown size={18} color="#94A3B8" />
@@ -206,7 +256,7 @@ export default function KYCOnboarding({ navigation }: any) {
       case 2:
         return (
           <View style={styles.formContent}>
-            <Text style={styles.inputLabel}>Address</Text>
+            <Text style={styles.inputLabel}>Address <Text style={{color: 'red'}}>*</Text></Text>
             <View style={[styles.inputWrapper, { height: 100, alignItems: 'flex-start' }]}>
               <TextInput
                 style={[styles.input, { height: '100%', textAlignVertical: 'top', paddingTop: 12 }]}
@@ -216,7 +266,7 @@ export default function KYCOnboarding({ navigation }: any) {
                 onChangeText={(val) => setFormData({ ...formData, addressLine1: val })}
               />
             </View>
-            <Text style={styles.inputLabel}>City</Text>
+            <Text style={styles.inputLabel}>City <Text style={{color: 'red'}}>*</Text></Text>
             <View style={styles.inputWrapper}>
               <TextInput
                 style={styles.input}
@@ -225,7 +275,7 @@ export default function KYCOnboarding({ navigation }: any) {
                 onChangeText={(val) => setFormData({ ...formData, city: val })}
               />
             </View>
-            <Text style={styles.inputLabel}>Pincode</Text>
+            <Text style={styles.inputLabel}>Pincode <Text style={{color: 'red'}}>*</Text></Text>
             <View style={styles.inputWrapper}>
               <TextInput
                 style={styles.input}
@@ -246,7 +296,7 @@ export default function KYCOnboarding({ navigation }: any) {
                 <CreditCard size={24} color="#2563EB" />
               </View>
               <View style={{ flex: 1, marginLeft: 15 }}>
-                <Text style={styles.uploadTitle}>PAN Card</Text>
+                <Text style={styles.uploadTitle}>PAN Card <Text style={{color: 'red'}}>*</Text></Text>
                 <Text style={styles.uploadSubtitle}>Upload front side image</Text>
               </View>
               <Upload size={20} color="#3B82F6" />
@@ -257,7 +307,7 @@ export default function KYCOnboarding({ navigation }: any) {
                 <FileText size={24} color="#2563EB" />
               </View>
               <View style={{ flex: 1, marginLeft: 15 }}>
-                <Text style={styles.uploadTitle}>Aadhar Front</Text>
+                <Text style={styles.uploadTitle}>Aadhar Front <Text style={{color: 'red'}}>*</Text></Text>
                 <Text style={styles.uploadSubtitle}>Clear image of front side</Text>
               </View>
               <Upload size={20} color="#3B82F6" />
@@ -268,14 +318,14 @@ export default function KYCOnboarding({ navigation }: any) {
                 <FileText size={24} color="#2563EB" />
               </View>
               <View style={{ flex: 1, marginLeft: 15 }}>
-                <Text style={styles.uploadTitle}>Aadhar Back</Text>
+                <Text style={styles.uploadTitle}>Aadhar Back <Text style={{color: 'red'}}>*</Text></Text>
                 <Text style={styles.uploadSubtitle}>Clear image of back side</Text>
               </View>
               <Upload size={20} color="#3B82F6" />
             </TouchableOpacity>
 
             <View style={styles.typeSelector}>
-              <Text style={styles.inputLabel}>Account Type</Text>
+              <Text style={styles.inputLabel}>Account Type <Text style={{color: 'red'}}>*</Text></Text>
               <View style={styles.row}>
                 {['Savings', 'Current'].map((type) => (
                   <TouchableOpacity
@@ -298,15 +348,7 @@ export default function KYCOnboarding({ navigation }: any) {
               <Camera size={40} color="#0EA5E9" />
             </View>
             <Text style={styles.videoTitle}>Video KYC Verification</Text>
-            <Text style={styles.videoDesc}>Complete a quick live video call to activate your premium banking features instantly.</Text>
-            <View style={styles.checklist}>
-              {['Original PAN & Aadhar ready', 'Good lighting environment'].map((item, i) => (
-                <View key={i} style={styles.checkItem}>
-                  <CheckCircle2 size={16} color="#10B981" />
-                  <Text style={styles.checkText}>{item}</Text>
-                </View>
-              ))}
-            </View>
+            <Text style={styles.videoDesc}>Complete a quick live video call to activate features instantly.</Text>
           </View>
         );
       default:
@@ -364,11 +406,12 @@ export default function KYCOnboarding({ navigation }: any) {
         </View>
       </Modal>
 
-      {showDatePicker && (
+      {showDatePicker && Platform.OS !== 'web' && (
         <DateTimePicker
           mode="date"
           value={formData.dobDate || new Date()}
           display="spinner"
+          maximumDate={new Date()}
           onChange={(e: any, date: any) => {
             setShowDatePicker(false);
             if (date) {
@@ -451,9 +494,6 @@ const styles = StyleSheet.create({
   videoCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#E0F2FE', justifyContent: 'center', alignItems: 'center', marginTop: 20 },
   videoTitle: { fontSize: 20, fontWeight: '900', color: '#0F172A', marginTop: 20 },
   videoDesc: { fontSize: 14, color: '#64748B', textAlign: 'center', marginTop: 10, lineHeight: 22 },
-  checklist: { marginTop: 20, width: '100%' },
-  checkItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, backgroundColor: '#F0FDF4', padding: 12, borderRadius: 10 },
-  checkText: { marginLeft: 10, fontSize: 14, color: '#166534', fontWeight: '600' },
 
   footer: { padding: 20, backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#F1F5F9' },
   primaryBtn: { height: 56, backgroundColor: '#002D72', borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
