@@ -9,15 +9,21 @@ import KYCSuccess from '../screens/KYCSuccess';
 import Login from '../screens/Login';
 import OTPSuccess from '../screens/OTPSuccess';
 import Register from '../screens/Register';
+import SplashScreen from '../screens/SplashScreen';
 
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   return (
     <Stack.Navigator
-      initialRouteName="Login"
+      // CHANGE 1: Set this to "Splash" so it is the first screen seen [cite: 2026-01-13]
+      initialRouteName="Splash" 
       screenOptions={{ headerShown: false }}
     >
+      
+      {/* CHANGE 2: Ensure the name is "Splash" to match your navigation.replace('Splash') logic */}
+      <Stack.Screen name="Splash" component={SplashScreen} />
+      
       <Stack.Screen name="Login" component={Login} />
       <Stack.Screen name="Dashboard" component={Index} />
       <Stack.Screen name="AdminDashboard" component={AdminDashboard} />

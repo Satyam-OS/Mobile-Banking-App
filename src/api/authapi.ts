@@ -1,4 +1,4 @@
-const BASE_URL = "https://unhastened-monopolistically-shirlee.ngrok-free.dev";
+const BASE_URL = "  https://unhastened-monopolistically-shirlee.ngrok-free.dev";
 
 export const sendOtp = async (phone: string) => {
   const res = await fetch(`${BASE_URL}/otp/send`, {

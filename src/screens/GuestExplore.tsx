@@ -10,9 +10,10 @@ import {
   TrendingUp,
   Wallet,
 } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  Animated,
   Dimensions,
   Modal,
   SafeAreaView,
@@ -22,12 +23,11 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
-// Dynamic services data
 const services = [
   { icon: Wallet, title: 'Savings', desc: 'High interest', color: '#0EA5E9', tag: 'Popular' },
   { icon: CreditCard, title: 'Credit', desc: 'Instant limit', color: '#0284C7', tag: 'New' },
@@ -35,12 +35,68 @@ const services = [
   { icon: PiggyBank, title: 'Safe', desc: 'Insured assets', color: '#0369A1', tag: 'Secure' },
 ];
 
-const BASE_URL = 'https://unhastened-monopolistically-shirlee.ngrok-free.dev';
+const BASE_URL = '  https://unhastened-monopolistically-shirlee.ngrok-free.dev';
+
+// Custom component for hover effect animation
+const AnimatedButton = ({ onPress, children, style }: any) => {
+  const scaleValue = useRef(new Animated.Value(1)).current;
+
+  const onPressIn = () => {
+    Animated.spring(scaleValue, { toValue: 0.95, useNativeDriver: true }).start();
+  };
+  const onPressOut = () => {
+    Animated.spring(scaleValue, { toValue: 1, friction: 3, tension: 40, useNativeDriver: true }).start();
+  };
+
+  return (
+    <TouchableOpacity
+      activeOpacity={1}
+      onPress={onPress}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+    >
+      <Animated.View style={[style, { transform: [{ scale: scaleValue }] }]}>
+        {children}
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
 
 export default function GuestExplore({ navigation }: any) {
   const [showModal, setShowModal] = useState(false);
   const [mobile, setMobile] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Splash Animation States
+  const [isSplashVisible, setIsSplashVisible] = useState(true);
+  const splashOpacity = useRef(new Animated.Value(0)).current;
+  const splashScale = useRef(new Animated.Value(0.8)).current;
+  const splashContainerOpacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // 1. Fade in and scale text
+    Animated.parallel([
+      Animated.timing(splashOpacity, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(splashScale, {
+        toValue: 1,
+        friction: 5,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // 2. Hide splash after delay
+    setTimeout(() => {
+      Animated.timing(splashContainerOpacity, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }).start(() => setIsSplashVisible(false));
+    }, 2000);
+  }, []);
 
   const sendOtp = async () => {
     if (mobile.length !== 10) {
@@ -69,6 +125,17 @@ export default function GuestExplore({ navigation }: any) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
+      
+      {/* ICICI STYLE TEXT SPLASH */}
+      {isSplashVisible && (
+        <Animated.View style={[styles.splashOverlay, { opacity: splashContainerOpacity }]}>
+          <Animated.View style={{ opacity: splashOpacity, transform: [{ scale: splashScale }] }}>
+            <Text style={styles.splashText}>NEXUS</Text>
+            <Text style={styles.splashSubText}>INSTITUTIONAL BANKING</Text>
+          </Animated.View>
+        </Animated.View>
+      )}
+
       <View style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
           {/* Header */}
@@ -88,19 +155,21 @@ export default function GuestExplore({ navigation }: any) {
             </View>
 
             <Text style={styles.title}>
-              Modern Wealth{'\n'}
-              <Text style={{ color: '#38BDF8' }}>Management</Text>
+              Your Future {'\n'}
+              <Text style={{ color: '#38BDF8' }}>Reimagined</Text>
             </Text>
 
             <Text style={styles.description}>
-              Secure your financial future with our digital ecosystem.
+              Discover a smarter way to manage your wealth.
             </Text>
           </View>
 
           {/* Main Content Area */}
           <View style={styles.content}>
-            {/* Account CTA */}
-            <View style={styles.ctaCard}>
+            <AnimatedButton
+              style={styles.ctaCard}
+              onPress={() => setShowModal(true)}
+            >
               <View style={styles.ctaIconBox}>
                 <Building2 size={24} color="#001F3F" />
               </View>
@@ -108,20 +177,17 @@ export default function GuestExplore({ navigation }: any) {
                 <Text style={styles.ctaTitle}>Open Premium Account</Text>
                 <Text style={styles.ctaSubtitle}>ZERO BALANCE • INSTANT KYC</Text>
               </View>
-              <TouchableOpacity
-                style={styles.ctaArrowBtn}
-                onPress={() => setShowModal(true)}
-              >
+              <View style={styles.ctaArrowBtn}>
                 <ArrowRight size={18} color="#FFF" />
-              </TouchableOpacity>
-            </View>
+              </View>
+            </AnimatedButton>
 
-            {/* Banking Suites Grid - FROM PREVIOUS CODE */}
+            {/* Banking Suites Grid */}
             <View style={styles.section}>
               <Text style={styles.sectionHeader}>BANKING SUITES</Text>
               <View style={styles.grid}>
                 {services.map((s, idx) => (
-                  <TouchableOpacity key={idx} style={styles.gridItem}>
+                  <AnimatedButton key={idx} style={styles.gridItem} onPress={() => {}}>
                     <View style={styles.badge}>
                       <Text style={styles.badgeText}>{s.tag}</Text>
                     </View>
@@ -130,12 +196,12 @@ export default function GuestExplore({ navigation }: any) {
                     </View>
                     <Text style={styles.gridTitle}>{s.title}</Text>
                     <Text style={styles.gridDesc}>{s.desc}</Text>
-                  </TouchableOpacity>
+                  </AnimatedButton>
                 ))}
               </View>
             </View>
 
-            {/* Security Protocol - FROM PREVIOUS CODE */}
+            {/* Security Protocol */}
             <View style={styles.securityBox}>
               <View style={styles.securityHeader}>
                 <ShieldCheck size={22} color="#10B981" />
@@ -153,16 +219,16 @@ export default function GuestExplore({ navigation }: any) {
 
         {/* Footer */}
         <View style={styles.fixedFooter}>
-          <TouchableOpacity
+          <AnimatedButton
             style={styles.primaryBtn}
             onPress={() => setShowModal(true)}
           >
             <Text style={styles.primaryBtnText}>CREATE FREE ACCOUNT</Text>
-          </TouchableOpacity>
+          </AnimatedButton>
         </View>
 
         {/* OTP MODAL */}
-        <Modal transparent animationType="slide" visible={showModal}>
+        <Modal transparent animationType="fade" visible={showModal}>
           <View style={styles.modalBg}>
             <View style={styles.modalCard}>
               <Phone size={28} color="#001F3F" />
@@ -170,20 +236,20 @@ export default function GuestExplore({ navigation }: any) {
               <TextInput
                 style={styles.input}
                 placeholder="10-digit mobile number"
+                placeholderTextColor="#94A3B8"
                 keyboardType="number-pad"
                 maxLength={10}
                 value={mobile}
                 onChangeText={(t) => setMobile(t.replace(/[^0-9]/g, ''))}
               />
-              <TouchableOpacity
+              <AnimatedButton
                 style={styles.modalBtn}
                 onPress={sendOtp}
-                disabled={loading}
               >
                 <Text style={styles.modalBtnText}>
                   {loading ? 'SENDING...' : 'SEND OTP'}
                 </Text>
-              </TouchableOpacity>
+              </AnimatedButton>
               <TouchableOpacity onPress={() => setShowModal(false)}>
                 <Text style={styles.modalCancel}>Cancel</Text>
               </TouchableOpacity>
@@ -195,10 +261,31 @@ export default function GuestExplore({ navigation }: any) {
   );
 }
 
-/* STYLES */
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#001F3F' },
   container: { flex: 1, backgroundColor: '#F0F9FF' },
+  splashOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#001F3F',
+    zIndex: 9999,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  splashText: {
+    color: '#FFF',
+    fontSize: 42,
+    fontWeight: '900',
+    letterSpacing: 8,
+    textAlign: 'center',
+  },
+  splashSubText: {
+    color: '#38BDF8',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 2,
+    textAlign: 'center',
+    marginTop: 10,
+  },
   header: { backgroundColor: '#001F3F', padding: 24, paddingBottom: 60, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between' },
   signInText: { color: '#38BDF8', fontWeight: '900' },
@@ -224,8 +311,6 @@ const styles = StyleSheet.create({
   ctaTitle: { fontWeight: '900', color: '#001F3F' },
   ctaSubtitle: { fontSize: 10, color: '#64748B' },
   ctaArrowBtn: { backgroundColor: '#001F3F', padding: 14, borderRadius: 20 },
-
-  // New Grid Styles
   section: { marginVertical: 24 },
   sectionHeader: { fontSize: 12, fontWeight: '900', color: '#001F3F', letterSpacing: 2, marginBottom: 16 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 },
@@ -243,15 +328,12 @@ const styles = StyleSheet.create({
   gridIconBox: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
   gridTitle: { fontSize: 14, fontWeight: '900', color: '#001F3F' },
   gridDesc: { fontSize: 10, fontWeight: '700', color: '#64748B', marginTop: 4 },
-
-  // Security Box Styles
   securityBox: { backgroundColor: '#FFF', padding: 24, borderRadius: 28, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 24 },
   securityHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
   securityTitle: { fontSize: 13, fontWeight: '900', color: '#001F3F' },
   securityItem: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
   securityDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#0EA5E9' },
   securityText: { fontSize: 11, fontWeight: '700', color: '#64748B' },
-
   fixedFooter: { padding: 20, backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#F1F5F9' },
   primaryBtn: {
     backgroundColor: '#001F3F',
@@ -261,11 +343,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryBtnText: { color: '#FFF', fontWeight: '900' },
-
   modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center' },
   modalCard: { backgroundColor: '#FFF', margin: 24, padding: 24, borderRadius: 24, alignItems: 'center' },
   modalTitle: { fontSize: 16, fontWeight: '900', marginVertical: 12 },
-  input: { width: '100%', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 12, padding: 12, marginBottom: 12 },
+  input: { width: '100%', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 12, padding: 12, marginBottom: 12, color: '#000' },
   modalBtn: { backgroundColor: '#001F3F', padding: 14, borderRadius: 14, width: '100%', alignItems: 'center' },
   modalBtnText: { color: '#FFF', fontWeight: '900' },
   modalCancel: { marginTop: 12, color: '#64748B' },

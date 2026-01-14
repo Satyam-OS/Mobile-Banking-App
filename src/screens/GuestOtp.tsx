@@ -10,7 +10,7 @@ import {
   View
 } from 'react-native';
 
-const API_BASE_URL = 'https://unhastened-monopolistically-shirlee.ngrok-free.dev';
+const API_BASE_URL = '  https://unhastened-monopolistically-shirlee.ngrok-free.dev';
 
 export default function GuestOtp({ navigation, route }: any) {
   const { mobile } = route.params;

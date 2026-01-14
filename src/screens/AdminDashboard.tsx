@@ -124,13 +124,13 @@ export default function AdminDashboard({ navigation }: any) {
         </View>
 
         {/* Recent Activities */}
-        <div style={styles.activitiesHeader}>
+        < View style={styles.activitiesHeader}>
           <Text style={styles.sectionTitle}>Recent Activities</Text>
           <TouchableOpacity style={styles.viewAllBtn}>
             <Text style={styles.viewAllText}>View All</Text>
             <ChevronRight size={16} color="#0EA5E9" />
           </TouchableOpacity>
-        </div>
+        </View>
 
         <View style={styles.activitiesCard}>
           {recentActivities.map((activity, index) => (

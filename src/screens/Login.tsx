@@ -13,7 +13,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -22,16 +21,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-// API CONFIGURATION - Ready for your production URL
-// const API_BASE_URL = 'https://your-api-domain.com/api'; 
-
-export default function Login({ navigation }: any) {
+const Login = ({ navigation }: any) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   
-  // FORM STATE - Ready for JSON body
   const [formData, setFormData] = useState({
     mobile: '',
     password: '',
@@ -44,9 +40,7 @@ export default function Login({ navigation }: any) {
     }
   };
 
-  // API READY: Submit Function
   const handleSubmit = async () => {
-    // 1. Frontend Validation
     if (formData.mobile.length !== 10) {
       Alert.alert("Invalid Entry", "Please enter a valid 10-digit mobile number.");
       return;
@@ -58,56 +52,17 @@ export default function Login({ navigation }: any) {
 
     setIsLoading(true);
 
-    // 2. BACKEND API INTEGRATION
     try {
-      /* // REAL API IMPLEMENTATION:
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json' 
-        },
-        body: JSON.stringify({
-          mobile: formData.mobile,
-          password: formData.password,
-          rememberMe: rememberMe
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || "Invalid credentials");
-      }
-
-      // API READY: Store the Token for authenticated requests
-      // await AsyncStorage.setItem('userToken', result.token);
-      // await AsyncStorage.setItem('userRole', result.role);
-      
-      navigation.replace(result.role === 'admin' ? 'AdminDashboard' : 'Dashboard');
-      */
-
-      // SIMULATION LOGIC (Simulating backend latency)
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       let targetScreen = 'Dashboard';
-      
-      // Role-based navigation based on mobile patterns
-     
       if (formData.mobile.includes("999")) {
-        //  AdminDashboard for now as requested
         targetScreen = 'AdminDashboard'; 
-     
-     
-        // } else if (formData.mobile.includes("888")) {
-      //   // Skipping EmployeeDashboard for now as requested
-      //   targetScreen = 'Dashboard';
       }
 
       navigation.replace(targetScreen);
-
     } catch (error: any) {
-      Alert.alert("Login Failed", error.message || "Something went wrong. Please check your connection.");
+      Alert.alert("Login Failed", error.message || "Something went wrong.");
     } finally {
       setIsLoading(false);
     }
@@ -115,7 +70,8 @@ export default function Login({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      {/* Dynamic Status Bar - Dark theme for navy background */}
+      <StatusBar barStyle="light-content" backgroundColor="#001F3F" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
@@ -147,7 +103,7 @@ export default function Login({ navigation }: any) {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Mobile Number</Text>
               <View style={styles.inputWrapper}>
-                <Smartphone size={20} color="#0EA5E9" style={styles.inputIcon} />
+                <Smartphone size={20} color="#38BDF8" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="00000 00000"
@@ -163,7 +119,7 @@ export default function Login({ navigation }: any) {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Password</Text>
               <View style={styles.inputWrapper}>
-                <Lock size={20} color="#0EA5E9" style={styles.inputIcon} />
+                <Lock size={20} color="#38BDF8" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="••••••••"
@@ -183,7 +139,9 @@ export default function Login({ navigation }: any) {
                 style={styles.checkboxArea} 
                 onPress={() => setRememberMe(!rememberMe)}
               >
-                <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]} />
+                <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                  {rememberMe && <View style={styles.checkboxInner} />}
+                </View>
                 <Text style={styles.checkboxLabel}>Remember Me</Text>
               </TouchableOpacity>
               <TouchableOpacity>
@@ -193,7 +151,7 @@ export default function Login({ navigation }: any) {
 
             <View style={styles.buttonRow}>
               <TouchableOpacity 
-                style={[styles.loginButton, isLoading && { backgroundColor: '#1E293B' }]} 
+                style={[styles.loginButton, isLoading && { backgroundColor: '#334155' }]} 
                 onPress={handleSubmit}
                 disabled={isLoading}
               >
@@ -208,7 +166,7 @@ export default function Login({ navigation }: any) {
                 style={styles.bioButton} 
                 onPress={() => Alert.alert("Biometric", "Initializing scanner...")}
               >
-                <Fingerprint size={28} color="#001F3F" />
+                <Fingerprint size={28} color="#38BDF8" />
               </TouchableOpacity>
             </View>
 
@@ -226,13 +184,13 @@ export default function Login({ navigation }: any) {
                 <Text style={styles.guestTextLabel}>New user? </Text>
                 <View style={styles.exploreBadge}>
                   <Text style={styles.exploreText}>EXPLORE AS GUEST</Text>
-                  <ArrowRight size={14} color="#0EA5E9" />
+                  <ArrowRight size={14} color="#38BDF8" />
                 </View>
               </TouchableOpacity>
             </View>
 
             <View style={styles.encryptionBadge}>
-              <ShieldCheck size={14} color="#0EA5E9" />
+              <ShieldCheck size={14} color="#38BDF8" />
               <Text style={styles.encryptionText}>END-TO-END ENCRYPTED</Text>
             </View>
           </View>
@@ -241,139 +199,154 @@ export default function Login({ navigation }: any) {
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F0F9FF' },
+  container: { flex: 1, backgroundColor: '#001F3F' }, // Primary Navy Background
   brandingSection: {
     height: 220,
-    backgroundColor: '#F0F9FF',
+    backgroundColor: '#001F3F', // Matches Navy Header
     justifyContent: 'center',
     alignItems: 'center',
   },
   logoContainer: {
-    width: 80,
-    height: 80,
+    width: 85,
+    height: 85,
     backgroundColor: '#FFF',
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#0EA5E9',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
+    elevation: 8,
+    shadowColor: '#38BDF8',
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
     marginBottom: 15,
   },
   logoInner: {
-    width: 55,
-    height: 55,
-    backgroundColor: '#001F3F',
-    borderRadius: 16,
+    width: 60,
+    height: 60,
+    backgroundColor: '#0F172A',
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoText: { color: '#BAE6FD', fontSize: 22, fontWeight: '900' },
-  brandName: { color: '#001F3F', fontSize: 26, fontWeight: '900', letterSpacing: -0.5 },
+  logoText: { color: '#38BDF8', fontSize: 24, fontWeight: '900' }, // Accent Blue
+  brandName: { color: '#FFF', fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
   brandBadge: {
-    marginTop: 6,
-    backgroundColor: '#E0F2FE',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    marginTop: 8,
+    backgroundColor: '#0EA5E9', // Professional Blue Badge
+    paddingHorizontal: 14,
+    paddingVertical: 5,
     borderRadius: 20,
   },
-  brandSub: { color: '#0EA5E9', fontSize: 9, fontWeight: '800', letterSpacing: 1.2 },
+  brandSub: { color: '#FFF', fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
   
   formContainer: {
     flex: 1,
-    backgroundColor: '#FFF',
-    borderTopLeftRadius: 35,
-    borderTopRightRadius: 35,
-    paddingHorizontal: 28,
-    paddingTop: 35,
-    paddingBottom: 20,
-    elevation: 20,
+    backgroundColor: '#F0F9FF', // Lighter Sky Blue Background
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    paddingHorizontal: 30,
+    paddingTop: 40,
+    paddingBottom: 30,
+    elevation: 25,
     shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 15,
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
   },
-  headerTextGroup: { marginBottom: 30 },
-  welcomeTitle: { fontSize: 28, fontWeight: '900', color: '#001F3F' },
-  welcomeSub: { fontSize: 15, color: '#64748B', marginTop: 4, fontWeight: '500' },
+  headerTextGroup: { marginBottom: 35 },
+  welcomeTitle: { fontSize: 30, fontWeight: '900', color: '#001F3F' },
+  welcomeSub: { fontSize: 16, color: '#64748B', marginTop: 4, fontWeight: '500' },
   
-  inputGroup: { marginBottom: 20 },
-  label: { fontSize: 12, fontWeight: '700', color: '#64748B', marginBottom: 8, marginLeft: 4 },
+  inputGroup: { marginBottom: 22 },
+  label: { fontSize: 13, fontWeight: '700', color: '#64748B', marginBottom: 10, marginLeft: 4 },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFF',
     borderWidth: 1.5,
-    borderColor: '#F1F5F9',
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    height: 60,
+    borderColor: '#E2E8F0',
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    height: 64,
   },
   inputIcon: { marginRight: 12 },
-  input: { flex: 1, fontSize: 16, color: '#001F3F', fontWeight: '600' },
+  input: { flex: 1, fontSize: 16, color: '#0F172A', fontWeight: '600' },
   
   forgotRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 35,
   },
   checkboxArea: { flexDirection: 'row', alignItems: 'center' },
-  checkbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 2, borderColor: '#CBD5E1', marginRight: 10 },
-  checkboxChecked: { backgroundColor: '#0EA5E9', borderColor: '#0EA5E9' },
+  checkbox: { 
+    width: 22, 
+    height: 22, 
+    borderRadius: 7, 
+    borderWidth: 2, 
+    borderColor: '#CBD5E1', 
+    marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  checkboxChecked: { backgroundColor: '#38BDF8', borderColor: '#38BDF8' },
+  checkboxInner: { width: 10, height: 10, backgroundColor: '#FFF', borderRadius: 2 },
   checkboxLabel: { fontSize: 14, color: '#475569', fontWeight: '600' },
-  forgotText: { fontSize: 14, color: '#0EA5E9', fontWeight: '700' },
+  forgotText: { fontSize: 14, color: '#38BDF8', fontWeight: '700' },
   
-  buttonRow: { flexDirection: 'row', gap: 12, marginBottom: 35 },
+  buttonRow: { flexDirection: 'row', gap: 14, marginBottom: 40 },
   loginButton: {
     flex: 1,
-    backgroundColor: '#001F3F',
+    backgroundColor: '#001F3F', // Primary Navy Button
     height: 64,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
   },
-  loginButtonText: { color: '#FFF', fontSize: 15, fontWeight: '800', letterSpacing: 0.5 },
+  loginButtonText: { color: '#FFF', fontSize: 16, fontWeight: '800', letterSpacing: 0.5 },
   bioButton: {
     width: 64,
     height: 64,
     borderRadius: 20,
     borderWidth: 1.5,
     borderColor: '#E0F2FE',
-    backgroundColor: '#F0F9FF',
+    backgroundColor: '#FFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
   
-  footerLinks: { alignItems: 'center', gap: 15 },
+  footerLinks: { alignItems: 'center', gap: 18 },
   registerText: { fontSize: 15, color: '#64748B', fontWeight: '500' },
-  boldBlue: { color: '#0EA5E9', fontWeight: '800' },
+  boldBlue: { color: '#38BDF8', fontWeight: '800' }, // Accent Blue Links
   guestButton: {
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    height: 56,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 18,
+    height: 60,
+    backgroundColor: '#FFF',
+    borderRadius: 20,
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: '#E2E8F0',
   },
   guestTextLabel: { color: '#64748B', fontWeight: '600' },
-  exploreBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  exploreText: { color: '#001F3F', fontWeight: '800', fontSize: 12 },
+  exploreBadge: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  exploreText: { color: '#001F3F', fontWeight: '800', fontSize: 13 },
   
   encryptionBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    marginTop: 40,
-    opacity: 0.6
+    marginTop: 45,
+    opacity: 0.7
   },
-  encryptionText: { fontSize: 10, color: '#64748B', fontWeight: '800', letterSpacing: 1 },
+  encryptionText: { fontSize: 11, color: '#94A3B8', fontWeight: '800', letterSpacing: 1 },
 });
+
+export default Login;
