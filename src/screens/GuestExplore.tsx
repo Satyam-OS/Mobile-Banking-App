@@ -2,6 +2,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Building2,
+  CheckCircle2,
   CreditCard,
   Phone,
   PiggyBank,
@@ -9,6 +10,7 @@ import {
   Sparkles,
   TrendingUp,
   Wallet,
+  X
 } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -29,15 +31,42 @@ import {
 const { width } = Dimensions.get('window');
 
 const services = [
-  { icon: Wallet, title: 'Savings', desc: 'High interest', color: '#0EA5E9', tag: 'Popular' },
-  { icon: CreditCard, title: 'Credit', desc: 'Instant limit', color: '#0284C7', tag: 'New' },
-  { icon: TrendingUp, title: 'Invest', desc: 'Global stocks', color: '#001F3F', tag: 'Pro' },
-  { icon: PiggyBank, title: 'Safe', desc: 'Insured assets', color: '#0369A1', tag: 'Secure' },
+  { 
+    icon: Wallet, 
+    title: 'Savings', 
+    desc: 'High interest', 
+    color: '#0EA5E9', 
+    tag: 'Popular',
+    info: ['Up to 7.5% Annual Interest', 'Zero Monthly Maintenance', 'Instant Digital Account Opening', 'Unlimited ATM Withdrawals']
+  },
+  { 
+    icon: CreditCard, 
+    title: 'Credit', 
+    desc: 'Instant limit', 
+    color: '#0284C7', 
+    tag: 'New',
+    info: ['Instant Credit Line Approval', 'No Annual Fees for 1st Year', '5% Cashback on Partner Brands', 'Convert Big Spends to Easy EMI']
+  },
+  { 
+    icon: TrendingUp, 
+    title: 'Invest', 
+    desc: 'Global stocks', 
+    color: '#001F3F', 
+    tag: 'Pro',
+    info: ['Access to US & Indian Markets', 'Zero Brokerage on SIPs', 'AI-Powered Portfolio Insights', 'Real-time Market Analytics']
+  },
+  { 
+    icon: PiggyBank, 
+    title: 'Safe', 
+    desc: 'Insured assets', 
+    color: '#0369A1', 
+    tag: 'Secure',
+    info: ['DICGC Insured up to ₹5 Lakh', 'Military Grade Digital Vault', '24/7 Fraud Monitoring', 'Nominee Management System']
+  },
 ];
 
-const BASE_URL = '  https://unhastened-monopolistically-shirlee.ngrok-free.dev';
+const BASE_URL = 'https://unhastened-monopolistically-shirlee.ngrok-free.dev';
 
-// Custom component for hover effect animation
 const AnimatedButton = ({ onPress, children, style }: any) => {
   const scaleValue = useRef(new Animated.Value(1)).current;
 
@@ -64,17 +93,16 @@ const AnimatedButton = ({ onPress, children, style }: any) => {
 
 export default function GuestExplore({ navigation }: any) {
   const [showModal, setShowModal] = useState(false);
+  const [selectedService, setSelectedService] = useState<any>(null);
   const [mobile, setMobile] = useState('');
   const [loading, setLoading] = useState(false);
   
-  // Splash Animation States
   const [isSplashVisible, setIsSplashVisible] = useState(true);
   const splashOpacity = useRef(new Animated.Value(0)).current;
   const splashScale = useRef(new Animated.Value(0.8)).current;
   const splashContainerOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // 1. Fade in and scale text
     Animated.parallel([
       Animated.timing(splashOpacity, {
         toValue: 1,
@@ -88,7 +116,6 @@ export default function GuestExplore({ navigation }: any) {
       }),
     ]).start();
 
-    // 2. Hide splash after delay
     setTimeout(() => {
       Animated.timing(splashContainerOpacity, {
         toValue: 0,
@@ -126,7 +153,6 @@ export default function GuestExplore({ navigation }: any) {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
       
-      {/* ICICI STYLE TEXT SPLASH */}
       {isSplashVisible && (
         <Animated.View style={[styles.splashOverlay, { opacity: splashContainerOpacity }]}>
           <Animated.View style={{ opacity: splashOpacity, transform: [{ scale: splashScale }] }}>
@@ -138,7 +164,6 @@ export default function GuestExplore({ navigation }: any) {
 
       <View style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-          {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerTop}>
               <TouchableOpacity onPress={() => navigation.navigate('Login')}>
@@ -164,7 +189,6 @@ export default function GuestExplore({ navigation }: any) {
             </Text>
           </View>
 
-          {/* Main Content Area */}
           <View style={styles.content}>
             <AnimatedButton
               style={styles.ctaCard}
@@ -182,12 +206,11 @@ export default function GuestExplore({ navigation }: any) {
               </View>
             </AnimatedButton>
 
-            {/* Banking Suites Grid */}
             <View style={styles.section}>
               <Text style={styles.sectionHeader}>BANKING SUITES</Text>
               <View style={styles.grid}>
                 {services.map((s, idx) => (
-                  <AnimatedButton key={idx} style={styles.gridItem} onPress={() => {}}>
+                  <AnimatedButton key={idx} style={styles.gridItem} onPress={() => setSelectedService(s)}>
                     <View style={styles.badge}>
                       <Text style={styles.badgeText}>{s.tag}</Text>
                     </View>
@@ -201,7 +224,6 @@ export default function GuestExplore({ navigation }: any) {
               </View>
             </View>
 
-            {/* Security Protocol */}
             <View style={styles.securityBox}>
               <View style={styles.securityHeader}>
                 <ShieldCheck size={22} color="#10B981" />
@@ -217,7 +239,6 @@ export default function GuestExplore({ navigation }: any) {
           </View>
         </ScrollView>
 
-        {/* Footer */}
         <View style={styles.fixedFooter}>
           <AnimatedButton
             style={styles.primaryBtn}
@@ -227,7 +248,7 @@ export default function GuestExplore({ navigation }: any) {
           </AnimatedButton>
         </View>
 
-        {/* OTP MODAL */}
+        {/* MOBILE OTP MODAL */}
         <Modal transparent animationType="fade" visible={showModal}>
           <View style={styles.modalBg}>
             <View style={styles.modalCard}>
@@ -253,6 +274,45 @@ export default function GuestExplore({ navigation }: any) {
               <TouchableOpacity onPress={() => setShowModal(false)}>
                 <Text style={styles.modalCancel}>Cancel</Text>
               </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* SERVICE INFO MODAL */}
+        <Modal transparent animationType="slide" visible={!!selectedService}>
+          <View style={styles.modalBg}>
+            <View style={styles.infoModalCard}>
+              <View style={styles.infoModalHeader}>
+                <View style={[styles.gridIconBox, { backgroundColor: selectedService?.color, marginBottom: 0 }]}>
+                   {selectedService && <selectedService.icon size={20} color="#FFF" />}
+                </View>
+                <View style={{ flex: 1, marginLeft: 15 }}>
+                  <Text style={styles.infoModalTitle}>{selectedService?.title} Benefits</Text>
+                  <Text style={styles.infoModalSubtitle}>{selectedService?.desc}</Text>
+                </View>
+                <TouchableOpacity onPress={() => setSelectedService(null)} style={styles.closeBtn}>
+                  <X size={20} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.infoList}>
+                {selectedService?.info.map((item: string, i: number) => (
+                  <View key={i} style={styles.infoItem}>
+                    <CheckCircle2 size={18} color="#10B981" />
+                    <Text style={styles.infoItemText}>{item}</Text>
+                  </View>
+                ))}
+              </View>
+
+              <AnimatedButton
+                style={[styles.modalBtn, { marginTop: 10 }]}
+                onPress={() => {
+                  setSelectedService(null);
+                  setShowModal(true);
+                }}
+              >
+                <Text style={styles.modalBtnText}>GET STARTED NOW</Text>
+              </AnimatedButton>
             </View>
           </View>
         </Modal>
@@ -343,8 +403,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryBtnText: { color: '#FFF', fontWeight: '900' },
-  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center' },
-  modalCard: { backgroundColor: '#FFF', margin: 24, padding: 24, borderRadius: 24, alignItems: 'center' },
+  modalBg: { flex: 1, backgroundColor: 'rgba(0,31,63,0.7)', justifyContent: 'center', padding: 20 },
+  modalCard: { backgroundColor: '#FFF', padding: 24, borderRadius: 24, alignItems: 'center' },
+  infoModalCard: { backgroundColor: '#FFF', padding: 24, borderRadius: 30, width: '100%' },
+  infoModalHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  infoModalTitle: { fontSize: 18, fontWeight: '900', color: '#001F3F' },
+  infoModalSubtitle: { fontSize: 12, color: '#64748B', fontWeight: '600' },
+  closeBtn: { backgroundColor: '#F1F5F9', padding: 8, borderRadius: 12 },
+  infoList: { marginBottom: 20 },
+  infoItem: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 15 },
+  infoItemText: { fontSize: 14, fontWeight: '700', color: '#334155' },
   modalTitle: { fontSize: 16, fontWeight: '900', marginVertical: 12 },
   input: { width: '100%', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 12, padding: 12, marginBottom: 12, color: '#000' },
   modalBtn: { backgroundColor: '#001F3F', padding: 14, borderRadius: 14, width: '100%', alignItems: 'center' },
