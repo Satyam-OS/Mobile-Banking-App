@@ -3,11 +3,12 @@ import {
   Eye,
   EyeOff,
   Fingerprint,
+  Info,
   Lock,
   ShieldCheck,
-  Smartphone
-} from 'lucide-react-native';
-import React, { useState } from 'react';
+  Smartphone,
+} from "lucide-react-native";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -20,49 +21,42 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { authService } from "../services/authService";
 
 const Login = ({ navigation }: any) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  
+
   const [formData, setFormData] = useState({
-    mobile: '',
-    password: '',
+    mobile: "",
+    password: "",
   });
 
   const handleMobileChange = (text: string) => {
-    const cleaned = text.replace(/[^0-9]/g, '');
+    const cleaned = text.replace(/[^0-9]/g, "");
     if (cleaned.length <= 10) {
       setFormData({ ...formData, mobile: cleaned });
     }
   };
 
   const handleSubmit = async () => {
-    if (formData.mobile.length !== 10) {
-      Alert.alert("Invalid Entry", "Please enter a valid 10-digit mobile number.");
-      return;
-    }
-    if (formData.password.length < 4) {
-      Alert.alert("Invalid Entry", "Password must be at least 4 characters.");
-      return;
-    }
-
     setIsLoading(true);
-
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      let targetScreen = 'Dashboard';
-      if (formData.mobile.includes("999")) {
-        targetScreen = 'AdminDashboard'; 
-      }
+      const response = await authService.login({
+        mobile: formData.mobile,
+        password: formData.password,
+      });
 
-      navigation.replace(targetScreen);
-    } catch (error: any) {
-      Alert.alert("Login Failed", error.message || "Something went wrong.");
+      if (response.role === "ADMIN") {
+        navigation.replace("AdminDashboard");
+      } else {
+        navigation.replace("Dashboard");
+      }
+    } catch (e: any) {
+      Alert.alert("Login Failed", e.message);
     } finally {
       setIsLoading(false);
     }
@@ -70,43 +64,47 @@ const Login = ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Dynamic Status Bar - Dark theme for navy background */}
       <StatusBar barStyle="light-content" backgroundColor="#001F3F" />
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <ScrollView 
-          contentContainerStyle={{ flexGrow: 1 }} 
-          bounces={false} 
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          bounces={false}
           showsVerticalScrollIndicator={false}
         >
-          
           <View style={styles.brandingSection}>
             <View style={styles.logoContainer}>
               <View style={styles.logoInner}>
-                <Text style={styles.logoText}>NB</Text>
+                <ShieldCheck size={32} color="#001F3F" strokeWidth={2.5} />
               </View>
             </View>
             <Text style={styles.brandName}>NexusBank</Text>
             <View style={styles.brandBadge}>
-              <Text style={styles.brandSub}>PREMIUM DIGITAL BANKING</Text>
+              <Text style={styles.brandSub}>INSTITUTIONAL GRADE SECURITY</Text>
             </View>
           </View>
 
           <View style={styles.formContainer}>
             <View style={styles.headerTextGroup}>
-              <Text style={styles.welcomeTitle}>Sign In</Text>
-              <Text style={styles.welcomeSub}>Access your account securely</Text>
+              <Text style={styles.welcomeTitle}>Secure Login</Text>
+              <Text style={styles.welcomeSub}>
+                Enter your credentials to access the portal
+              </Text>
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Mobile Number</Text>
+              <Text style={styles.label}>REGISTERED MOBILE NUMBER</Text>
               <View style={styles.inputWrapper}>
-                <Smartphone size={20} color="#38BDF8" style={styles.inputIcon} />
+                <Smartphone
+                  size={20}
+                  color="#001F3F"
+                  style={styles.inputIcon}
+                />
                 <TextInput
                   style={styles.input}
-                  placeholder="00000 00000"
+                  placeholder="Enter 10-digit number"
                   placeholderTextColor="#94A3B8"
                   keyboardType="number-pad"
                   value={formData.mobile}
@@ -117,32 +115,46 @@ const Login = ({ navigation }: any) => {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password</Text>
+              <Text style={styles.label}>ACCOUNT PASSWORD</Text>
               <View style={styles.inputWrapper}>
-                <Lock size={20} color="#38BDF8" style={styles.inputIcon} />
+                <Lock size={20} color="#0EA5E9" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="••••••••"
                   placeholderTextColor="#94A3B8"
                   secureTextEntry={!showPassword}
                   value={formData.password}
-                  onChangeText={(text) => setFormData({ ...formData, password: text })}
+                  onChangeText={(text) =>
+                    setFormData({ ...formData, password: text })
+                  }
                 />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                  {showPassword ? <EyeOff size={20} color="#94A3B8" /> : <Eye size={20} color="#94A3B8" />}
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeBtn}
+                >
+                  {showPassword ? (
+                    <EyeOff size={20} color="#94A3B8" />
+                  ) : (
+                    <Eye size={20} color="#94A3B8" />
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
 
             <View style={styles.forgotRow}>
-              <TouchableOpacity 
-                style={styles.checkboxArea} 
+              <TouchableOpacity
+                style={styles.checkboxArea}
                 onPress={() => setRememberMe(!rememberMe)}
               >
-                <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                <View
+                  style={[
+                    styles.checkbox,
+                    rememberMe && styles.checkboxChecked,
+                  ]}
+                >
                   {rememberMe && <View style={styles.checkboxInner} />}
                 </View>
-                <Text style={styles.checkboxLabel}>Remember Me</Text>
+                <Text style={styles.checkboxLabel}>Remember Device</Text>
               </TouchableOpacity>
               <TouchableOpacity>
                 <Text style={styles.forgotText}>Forgot Password?</Text>
@@ -150,51 +162,64 @@ const Login = ({ navigation }: any) => {
             </View>
 
             <View style={styles.buttonRow}>
-              <TouchableOpacity 
-                style={[styles.loginButton, isLoading && { backgroundColor: '#334155' }]} 
+              <TouchableOpacity
+                style={[
+                  styles.loginButton,
+                  isLoading && { backgroundColor: "#1E293B" },
+                ]}
                 onPress={handleSubmit}
                 disabled={isLoading}
               >
                 {isLoading ? (
                   <ActivityIndicator color="#FFF" />
                 ) : (
-                  <Text style={styles.loginButtonText}>LOGIN TO ACCOUNT</Text>
+                  <>
+                    <Text style={styles.loginButtonText}>AUTHORIZE LOGIN</Text>
+                    <ArrowRight size={18} color="#FFF" />
+                  </>
                 )}
               </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.bioButton} 
-                onPress={() => Alert.alert("Biometric", "Initializing scanner...")}
+
+              <TouchableOpacity
+                style={styles.bioButton}
+                onPress={() =>
+                  Alert.alert("Biometric", "Initializing secure scanner...")
+                }
               >
-                <Fingerprint size={28} color="#38BDF8" />
+                <Fingerprint size={28} color="#0EA5E9" />
               </TouchableOpacity>
             </View>
 
             <View style={styles.footerLinks}>
-              <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+              <TouchableOpacity
+                style={styles.guestButton}
+                onPress={() => navigation.navigate("GuestExplore")}
+              >
+                <Info size={16} color="#64748B" />
+                <Text style={styles.guestTextLabel}>New to Nexus? </Text>
+                <Text style={styles.exploreText}>EXPLORE BENEFITS</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => navigation.navigate("Register")}
+                style={styles.registerBtn}
+              >
                 <Text style={styles.registerText}>
-                  Don't have an account? <Text style={styles.boldBlue}>Sign Up</Text>
+                  Don't have an account?{" "}
+                  <Text style={styles.boldBlue}>Apply Now</Text>
                 </Text>
               </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.guestButton}
-                onPress={() => navigation.navigate('GuestExplore')}
-              >
-                <Text style={styles.guestTextLabel}>New user? </Text>
-                <View style={styles.exploreBadge}>
-                  <Text style={styles.exploreText}>EXPLORE AS GUEST</Text>
-                  <ArrowRight size={14} color="#38BDF8" />
-                </View>
-              </TouchableOpacity>
             </View>
 
-            <View style={styles.encryptionBadge}>
-              <ShieldCheck size={14} color="#38BDF8" />
-              <Text style={styles.encryptionText}>END-TO-END ENCRYPTED</Text>
+            <View style={styles.footerLinks}>
+              <View style={styles.encryptionBadge}>
+                <ShieldCheck size={14} color="#94A3B8" />
+                <Text style={styles.encryptionText}>
+                  AES-256 BIT ENCRYPTION ENABLED
+                </Text>
+              </View>
             </View>
           </View>
-
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -202,151 +227,192 @@ const Login = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#001F3F' }, // Primary Navy Background
+  container: { flex: 1, backgroundColor: "#001F3F" },
   brandingSection: {
-    height: 220,
-    backgroundColor: '#001F3F', // Matches Navy Header
-    justifyContent: 'center',
-    alignItems: 'center',
+    height: 240,
+    backgroundColor: "#001F3F",
+    justifyContent: "center",
+    alignItems: "center",
   },
   logoContainer: {
-    width: 85,
-    height: 85,
-    backgroundColor: '#FFF',
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 8,
-    shadowColor: '#38BDF8',
-    shadowOpacity: 0.15,
-    shadowRadius: 15,
+    width: 90,
+    height: 90,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
     marginBottom: 15,
   },
   logoInner: {
-    width: 60,
-    height: 60,
-    backgroundColor: '#0F172A',
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 65,
+    height: 65,
+    backgroundColor: "#FFF",
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
   },
-  logoText: { color: '#38BDF8', fontSize: 24, fontWeight: '900' }, // Accent Blue
-  brandName: { color: '#FFF', fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
+  brandName: {
+    color: "#FFF",
+    fontSize: 32,
+    fontWeight: "900",
+    letterSpacing: -1,
+  },
   brandBadge: {
-    marginTop: 8,
-    backgroundColor: '#0EA5E9', // Professional Blue Badge
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    borderRadius: 20,
+    marginTop: 10,
+    backgroundColor: "rgba(0,0,0,0.15)",
+    paddingHorizontal: 15,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
-  brandSub: { color: '#FFF', fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
-  
+  brandSub: {
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.2,
+  },
   formContainer: {
     flex: 1,
-    backgroundColor: '#F0F9FF', // Lighter Sky Blue Background
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
+    backgroundColor: "#F0F9FF",
+    borderTopLeftRadius: 45,
+    borderTopRightRadius: 45,
     paddingHorizontal: 30,
-    paddingTop: 40,
+    paddingTop: 45,
     paddingBottom: 30,
-    elevation: 25,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
+    marginTop: -20,
   },
   headerTextGroup: { marginBottom: 35 },
-  welcomeTitle: { fontSize: 30, fontWeight: '900', color: '#001F3F' },
-  welcomeSub: { fontSize: 16, color: '#64748B', marginTop: 4, fontWeight: '500' },
-  
-  inputGroup: { marginBottom: 22 },
-  label: { fontSize: 13, fontWeight: '700', color: '#64748B', marginBottom: 10, marginLeft: 4 },
+  welcomeTitle: {
+    fontSize: 28,
+    fontWeight: "900",
+    color: "#001F3F",
+    letterSpacing: -0.5,
+  },
+  welcomeSub: {
+    fontSize: 15,
+    color: "#64748B",
+    marginTop: 6,
+    fontWeight: "500",
+  },
+  inputGroup: { marginBottom: 20 },
+  label: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#64748B",
+    marginBottom: 10,
+    letterSpacing: 1,
+  },
   inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF",
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: "#E2E8F0",
     borderRadius: 20,
     paddingHorizontal: 18,
-    height: 64,
+    height: 62,
   },
   inputIcon: { marginRight: 12 },
-  input: { flex: 1, fontSize: 16, color: '#0F172A', fontWeight: '600' },
-  
+  input: { flex: 1, fontSize: 16, color: "#001F3F", fontWeight: "600" },
+  eyeBtn: { padding: 5 },
   forgotRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 35,
+    paddingHorizontal: 5,
   },
-  checkboxArea: { flexDirection: 'row', alignItems: 'center' },
-  checkbox: { 
-    width: 22, 
-    height: 22, 
-    borderRadius: 7, 
-    borderWidth: 2, 
-    borderColor: '#CBD5E1', 
+  checkboxArea: { flexDirection: "row", alignItems: "center" },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: "#CBD5E1",
     marginRight: 10,
-    justifyContent: 'center',
-    alignItems: 'center'
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFF",
   },
-  checkboxChecked: { backgroundColor: '#38BDF8', borderColor: '#38BDF8' },
-  checkboxInner: { width: 10, height: 10, backgroundColor: '#FFF', borderRadius: 2 },
-  checkboxLabel: { fontSize: 14, color: '#475569', fontWeight: '600' },
-  forgotText: { fontSize: 14, color: '#38BDF8', fontWeight: '700' },
-  
-  buttonRow: { flexDirection: 'row', gap: 14, marginBottom: 40 },
+  checkboxChecked: { backgroundColor: "#0EA5E9", borderColor: "#0EA5E9" },
+  checkboxInner: {
+    width: 10,
+    height: 10,
+    backgroundColor: "#FFF",
+    borderRadius: 2,
+  },
+  checkboxLabel: { fontSize: 14, color: "#475569", fontWeight: "600" },
+  forgotText: { fontSize: 14, color: "#0EA5E9", fontWeight: "800" },
+  buttonRow: { flexDirection: "row", gap: 12, marginBottom: 40 },
   loginButton: {
     flex: 1,
-    backgroundColor: '#001F3F', // Primary Navy Button
+    backgroundColor: "#001F3F",
     height: 64,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
+    borderRadius: 22,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 10,
+    elevation: 8,
+    shadowColor: "#001F3F",
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
   },
-  loginButtonText: { color: '#FFF', fontSize: 16, fontWeight: '800', letterSpacing: 0.5 },
+  loginButtonText: {
+    color: "#FFF",
+    fontSize: 15,
+    fontWeight: "800",
+    letterSpacing: 1,
+  },
   bioButton: {
     width: 64,
     height: 64,
-    borderRadius: 20,
+    borderRadius: 22,
+    backgroundColor: "#FFF",
     borderWidth: 1.5,
-    borderColor: '#E0F2FE',
-    backgroundColor: '#FFF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderColor: "#E2E8F0",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
-  
-  footerLinks: { alignItems: 'center', gap: 18 },
-  registerText: { fontSize: 15, color: '#64748B', fontWeight: '500' },
-  boldBlue: { color: '#38BDF8', fontWeight: '800' }, // Accent Blue Links
+  footerLinks: { alignItems: "center", gap: 20 },
   guestButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    height: 60,
-    backgroundColor: '#FFF',
-    borderRadius: 20,
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(14, 165, 233, 0.08)",
+    paddingVertical: 14,
+    paddingHorizontal: 25,
+    borderRadius: 18,
+    gap: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: "rgba(14, 165, 233, 0.1)",
   },
-  guestTextLabel: { color: '#64748B', fontWeight: '600' },
-  exploreBadge: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  exploreText: { color: '#001F3F', fontWeight: '800', fontSize: 13 },
-  
+  guestTextLabel: { color: "#64748B", fontWeight: "600", fontSize: 14 },
+  exploreText: { color: "#0EA5E9", fontWeight: "800", fontSize: 14 },
+  registerBtn: { marginTop: 5 },
+  registerText: { fontSize: 15, color: "#64748B", fontWeight: "500" },
+  boldBlue: { color: "#0EA5E9", fontWeight: "800" },
   encryptionBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 6,
-    marginTop: 45,
-    opacity: 0.7
+    marginTop: 50,
   },
-  encryptionText: { fontSize: 11, color: '#94A3B8', fontWeight: '800', letterSpacing: 1 },
+  encryptionText: {
+    fontSize: 10,
+    color: "#94A3B8",
+    fontWeight: "800",
+    letterSpacing: 1.2,
+  },
 });
 
 export default Login;

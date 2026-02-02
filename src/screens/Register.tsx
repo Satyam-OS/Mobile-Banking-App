@@ -299,7 +299,7 @@ export default function Register({ navigation }: any) {
                   placeholder="0000000000"
                 />
                 <View style={styles.row}>
-                  <View style={{ flex: 1, marginRight: 10 }}>
+                  <View style={{ flex: 2, marginRight: 10 }}>
                     <Text style={styles.inputLabel}>
                       GENDER <Text style={{ color: "red" }}>*</Text>
                     </Text>

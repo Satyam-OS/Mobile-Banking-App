@@ -1,64 +1,77 @@
-import { ArrowRight } from 'lucide-react-native';
-import React, { useState } from 'react';
+import { ArrowRight, ShieldCheck } from "lucide-react-native";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   SafeAreaView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View
-} from 'react-native';
-
-const API_BASE_URL = '  https://unhastened-monopolistically-shirlee.ngrok-free.dev';
+  View,
+} from "react-native";
+import { authService } from "../services/authService";
 
 export default function GuestOtp({ navigation, route }: any) {
   const { mobile } = route.params;
-  const [otp, setOtp] = useState('');
+  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
 
   const verifyOtp = async () => {
-  if (otp.length !== 6) return;
+    if (otp.length !== 6) {
+      Alert.alert(
+        "Invalid OTP",
+        "Please enter the 6-digit code sent to your phone.",
+      );
+      return;
+    }
 
-  try {
-    const res = await fetch(`${API_BASE_URL}/otp/verify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: mobile, otp }),
-    });
+    try {
+      setLoading(true);
+      // Calls verify endpoint and saves JWT automatically
+      await authService.verifyOtp(mobile, otp);
 
-    if (!res.ok) throw new Error();
-
-    // ✅ DO NOT go back to GuestExplore
-    navigation.replace('OTPSuccess', {
-      status: 'SUCCESS',
-    });
-
-  } catch {
-    navigation.replace('OTPSuccess', {
-      status: 'FAILED',
-    });
-  }
-};
-
+      navigation.replace("OTPSuccess", {
+        status: "SUCCESS",
+      });
+    } catch (error: any) {
+      console.error("Verification Error:", error.message);
+      navigation.replace("OTPSuccess", {
+        status: "FAILED",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
-      <View style={{ padding: 24 }}>
-        <Text style={styles.title}>Verify OTP</Text>
-        <Text style={styles.subtitle}>OTP sent to +91 {mobile}</Text>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F0F9FF" />
+      <View style={styles.content}>
+        <View style={styles.headerSection}>
+          <Text style={styles.title}>Verify Identity</Text>
+          <Text style={styles.subtitle}>
+            We've sent a 6-digit secure code to{"\n"}
+            <Text style={styles.mobileHighlight}>+91 {mobile}</Text>
+          </Text>
+        </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Enter 6-digit OTP"
-          keyboardType="number-pad"
-          maxLength={6}
-          value={otp}
-          onChangeText={setOtp}
-        />
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Security Code</Text>
+          <TextInput
+            style={[styles.input, { letterSpacing: 8 }]} // ✅ Move it here
+            placeholder="0 0 0 0 0 0"
+            placeholderTextColor="#94A3B8"
+            keyboardType="number-pad"
+            maxLength={6}
+            value={otp}
+            onChangeText={(t) => setOtp(t.replace(/[^0-9]/g, ""))}
+          />
+        </View>
 
         <TouchableOpacity
-          style={[styles.btn, loading && { opacity: 0.6 }]}
+          style={[styles.btn, loading && styles.btnDisabled]}
           onPress={verifyOtp}
           disabled={loading}
         >
@@ -66,47 +79,135 @@ export default function GuestOtp({ navigation, route }: any) {
             <ActivityIndicator color="#FFF" />
           ) : (
             <>
-              <Text style={styles.btnText}>Verify</Text>
+              <Text style={styles.btnText}>VERIFY AND PROCEED</Text>
               <ArrowRight size={18} color="#FFF" />
             </>
           )}
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.resendBtn}
+          onPress={() => authService.generateOtp(mobile)}
+        >
+          <Text style={styles.resendText}>
+            Didn't receive code? <Text style={styles.resendLink}>Resend</Text>
+          </Text>
+        </TouchableOpacity>
+
+        <View style={styles.securityBadge}>
+          <ShieldCheck size={14} color="#64748B" />
+          <Text style={styles.securityText}>SECURE VERIFICATION</Text>
+        </View>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F0F9FF",
+  },
+  content: {
+    flex: 1,
+    padding: 30,
+    justifyContent: "center",
+  },
+  headerSection: {
+    marginBottom: 40,
+  },
   title: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#002D72',
+    fontSize: 32,
+    fontWeight: "900",
+    color: "#001F3F",
+    letterSpacing: -0.5,
   },
   subtitle: {
-    marginTop: 6,
+    marginTop: 10,
+    fontSize: 16,
+    color: "#64748B",
+    lineHeight: 24,
+    fontWeight: "500",
+  },
+  mobileHighlight: {
+    color: "#001F3F",
+    fontWeight: "700",
+  },
+  inputContainer: {
     marginBottom: 30,
-    color: '#64748B',
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#64748B",
+    marginBottom: 10,
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 14,
-    padding: 16,
-    fontSize: 16,
-    marginBottom: 30,
+    backgroundColor: "#FFF",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    borderRadius: 20,
+    padding: 20,
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#001F3F",
+    textAlign: "center",
+    letterSpacing: 8, // Corrected: Moved inside the style object
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   btn: {
-    height: 56,
-    backgroundColor: '#002D72',
-    borderRadius: 14,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 10,
+    height: 64,
+    backgroundColor: "#001F3F",
+    borderRadius: 20,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+    shadowColor: "#001F3F",
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 5,
+  },
+  btnDisabled: {
+    opacity: 0.7,
+    backgroundColor: "#334155",
   },
   btnText: {
-    color: '#FFF',
-    fontWeight: '900',
+    color: "#FFF",
+    fontWeight: "800",
     fontSize: 16,
+    letterSpacing: 1,
+  },
+  resendBtn: {
+    marginTop: 25,
+    alignItems: "center",
+  },
+  resendText: {
+    color: "#64748B",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  resendLink: {
+    color: "#38BDF8",
+    fontWeight: "800",
+  },
+  securityBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 50,
+    opacity: 0.6,
+  },
+  securityText: {
+    fontSize: 11,
+    color: "#64748B",
+    fontWeight: "800",
+    letterSpacing: 1.5,
   },
 });
