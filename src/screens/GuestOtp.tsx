@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ArrowRight, ShieldCheck } from "lucide-react-native";
 import React, { useState } from "react";
 import {
@@ -17,29 +18,59 @@ export default function GuestOtp({ navigation, route }: any) {
   const { mobile } = route.params;
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null); // ✅ Added for inline error display
 
   const verifyOtp = async () => {
+    // Reset error state on new attempt
+    setErrorMsg(null);
+
     if (otp.length !== 6) {
-      Alert.alert(
-        "Invalid OTP",
-        "Please enter the 6-digit code sent to your phone.",
-      );
+      setErrorMsg("Please enter the 6-digit code.");
       return;
     }
 
     try {
       setLoading(true);
-      // Calls verify endpoint and saves JWT automatically
-      await authService.verifyOtp(mobile, otp);
 
+      // 1. Verify OTP and get user data
+      const response = await authService.verifyOtp(mobile, otp);
+
+      // Note: If your API returns success: false instead of throwing an error
+      if (response?.success === false) {
+        throw new Error("INVALID_OTP");
+      }
+
+      // 2. Save the name to memory
+      if (response?.user?.firstName) {
+        await AsyncStorage.setItem("user_name", response.user.firstName);
+      }
+
+      // 3. On Success
       navigation.replace("OTPSuccess", {
         status: "SUCCESS",
       });
     } catch (error: any) {
       console.error("Verification Error:", error.message);
-      navigation.replace("OTPSuccess", {
-        status: "FAILED",
-      });
+
+      // ✅ Set the error message to show the "Invalid OTP" state
+      setErrorMsg("The OTP entered is incorrect or has expired.");
+
+      // Keep your requested fallback logic
+      Alert.alert(
+        "Verification Failed",
+        "The OTP entered is incorrect or has expired. Please try again.",
+        [
+          {
+            text: "Try Again",
+            onPress: () => setOtp(""), // Clear the input
+          },
+          {
+            text: "Exit",
+            onPress: () => navigation.navigate("GuestExplore"),
+            style: "cancel",
+          },
+        ],
+      );
     } finally {
       setLoading(false);
     }
@@ -58,15 +89,24 @@ export default function GuestOtp({ navigation, route }: any) {
         </View>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Security Code</Text>
+          <View style={styles.labelRow}>
+            <Text style={styles.label}>Security Code</Text>
+            {errorMsg && <Text style={styles.errorText}>Invalid Code</Text>}
+          </View>
           <TextInput
-            style={[styles.input, { letterSpacing: 8 }]} // ✅ Move it here
+            style={[
+              styles.input,
+              errorMsg ? styles.inputError : null, // ✅ Turns border red on error
+            ]}
             placeholder="0 0 0 0 0 0"
             placeholderTextColor="#94A3B8"
             keyboardType="number-pad"
             maxLength={6}
             value={otp}
-            onChangeText={(t) => setOtp(t.replace(/[^0-9]/g, ""))}
+            onChangeText={(t) => {
+              setErrorMsg(null); // Clear error when user types
+              setOtp(t.replace(/[^0-9]/g, ""));
+            }}
           />
         </View>
 
@@ -136,13 +176,23 @@ const styles = StyleSheet.create({
   inputContainer: {
     marginBottom: 30,
   },
+  labelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
   label: {
     fontSize: 13,
     fontWeight: "700",
     color: "#64748B",
-    marginBottom: 10,
     textTransform: "uppercase",
     letterSpacing: 1,
+  },
+  errorText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#EF4444",
   },
   input: {
     backgroundColor: "#FFF",
@@ -154,11 +204,15 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#001F3F",
     textAlign: "center",
-    letterSpacing: 8, // Corrected: Moved inside the style object
+    letterSpacing: 8,
     shadowColor: "#000",
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 2,
+  },
+  inputError: {
+    borderColor: "#EF4444",
+    backgroundColor: "#FEF2F2",
   },
   btn: {
     height: 64,

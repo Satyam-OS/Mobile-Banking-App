@@ -156,9 +156,18 @@ const Login = ({ navigation }: any) => {
                 </View>
                 <Text style={styles.checkboxLabel}>Remember Device</Text>
               </TouchableOpacity>
-              <TouchableOpacity>
-                <Text style={styles.forgotText}>Forgot Password?</Text>
-              </TouchableOpacity>
+
+              <View style={styles.rightActionGroup}>
+                <TouchableOpacity>
+                  <Text style={styles.forgotText}>Forgot Password?</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.setPasswordBtn}
+                  onPress={() => navigation.navigate("SetPassword")}
+                >
+                  <Text style={styles.setPasswordText}>Set Password</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             <View style={styles.buttonRow}>
@@ -323,7 +332,7 @@ const styles = StyleSheet.create({
   forgotRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
     marginBottom: 35,
     paddingHorizontal: 5,
   },
@@ -347,7 +356,10 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   checkboxLabel: { fontSize: 14, color: "#475569", fontWeight: "600" },
+  rightActionGroup: { alignItems: "flex-end" },
   forgotText: { fontSize: 14, color: "#0EA5E9", fontWeight: "800" },
+  setPasswordBtn: { marginTop: 5 },
+  setPasswordText: { fontSize: 14, color: "#0EA5E9", fontWeight: "700" },
   buttonRow: { flexDirection: "row", gap: 12, marginBottom: 40 },
   loginButton: {
     flex: 1,

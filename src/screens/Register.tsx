@@ -2,10 +2,12 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as DocumentPicker from "expo-document-picker";
 import {
+  AlertCircle,
   ArrowLeft,
   Calendar as CalendarIcon,
   Camera,
   Check,
+  CheckCircle2,
   ChevronRight,
   Clock,
   FileText,
@@ -18,7 +20,6 @@ import {
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Keyboard,
   KeyboardAvoidingView,
@@ -39,6 +40,10 @@ export default function Register({ navigation }: any) {
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   const [showGenderModal, setShowGenderModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -70,9 +75,16 @@ export default function Register({ navigation }: any) {
     selfie: null as any,
   });
 
-  const showAlert = (title: string, msg: string) => {
-    if (Platform.OS === "web") window.alert(`${title}: ${msg}`);
-    else Alert.alert(title, msg);
+  // Auto-hide notification after 4 seconds
+  useEffect(() => {
+    if (statusMessage) {
+      const timer = setTimeout(() => setStatusMessage(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [statusMessage]);
+
+  const triggerStatus = (type: "success" | "error", text: string) => {
+    setStatusMessage({ type, text });
   };
 
   const fetchAddressData = async (pin: string) => {
@@ -111,7 +123,7 @@ export default function Register({ navigation }: any) {
         setFormData({ ...formData, [field]: result.assets[0] });
       }
     } catch (err) {
-      showAlert("Error", "Failed to access files.");
+      triggerStatus("error", "Failed to access files.");
     }
   };
 
@@ -119,8 +131,8 @@ export default function Register({ navigation }: any) {
     if (!permission?.granted) {
       const { granted } = await requestPermission();
       if (!granted) {
-        showAlert(
-          "Permission Required",
+        triggerStatus(
+          "error",
           "Camera access is needed for identity verification.",
         );
         return;
@@ -141,43 +153,47 @@ export default function Register({ navigation }: any) {
   const validateStep = () => {
     if (step === 1) {
       if (!formData.fullName.trim())
-        return showAlert("Required", "Please enter your Full Name.");
+        return triggerStatus("error", "Required: Please enter your Full Name.");
       if (formData.mobile.length < 10)
-        return showAlert(
-          "Required",
-          "Please enter a valid 10-digit mobile number.",
+        return triggerStatus(
+          "error",
+          "Required: Enter a valid 10-digit mobile number.",
         );
       if (!formData.dob)
-        return showAlert("Required", "Please select your Date of Birth.");
+        return triggerStatus(
+          "error",
+          "Required: Please select your Date of Birth.",
+        );
       if (!formData.gender)
-        return showAlert("Required", "Please select your Gender.");
+        return triggerStatus("error", "Required: Please select your Gender.");
     } else if (step === 2) {
       if (!formData.flatNo || !formData.area || !formData.pincode)
-        return showAlert("Required", "Please complete all address fields.");
+        return triggerStatus(
+          "error",
+          "Required: Please complete all address fields.",
+        );
       if (formData.pincode.length < 6)
-        return showAlert("Error", "Pincode must be 6 digits.");
+        return triggerStatus("error", "Error: Pincode must be 6 digits.");
     } else if (step === 3) {
       if (
         !formData.aadhaarFront ||
         !formData.aadhaarBack ||
         !formData.panCard
       ) {
-        return showAlert(
-          "Missing Documents",
-          "Please upload all required ID documents.",
+        return triggerStatus(
+          "error",
+          "Missing: Please upload all required ID documents.",
         );
       }
     } else if (step === 4) {
       if (!formData.selfie)
-        return showAlert(
-          "Missing Selfie",
-          "Please capture a live selfie for verification.",
-        );
+        return triggerStatus("error", "Missing: Please capture a live selfie.");
     }
     return true;
   };
 
   const handleNext = () => {
+    setStatusMessage(null);
     if (validateStep()) {
       if (step < 4) setStep(step + 1);
       else {
@@ -196,9 +212,9 @@ export default function Register({ navigation }: any) {
       selectedDate || (event.target ? new Date(event.target.value) : null);
     if (date) {
       if (date > eighteenYearsAgo) {
-        showAlert(
-          "Eligibility Error",
-          "You must be at least 18 years old to register.",
+        triggerStatus(
+          "error",
+          "Eligibility Error: You must be at least 18 years old.",
         );
         return;
       }
@@ -269,6 +285,34 @@ export default function Register({ navigation }: any) {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
+            {/* NOTIFICATION BANNER */}
+            {statusMessage && (
+              <View
+                style={[
+                  styles.statusBanner,
+                  statusMessage.type === "error"
+                    ? styles.errorBanner
+                    : styles.successBanner,
+                ]}
+              >
+                {statusMessage.type === "error" ? (
+                  <AlertCircle size={18} color="#EF4444" />
+                ) : (
+                  <CheckCircle2 size={18} color="#10B981" />
+                )}
+                <Text
+                  style={[
+                    styles.statusText,
+                    statusMessage.type === "error"
+                      ? styles.errorText
+                      : styles.successText,
+                  ]}
+                >
+                  {statusMessage.text}
+                </Text>
+              </View>
+            )}
+
             {step === 1 && (
               <View style={styles.stepView}>
                 <Text style={styles.stepTitle}>PERSONAL DETAILS</Text>
@@ -298,8 +342,8 @@ export default function Register({ navigation }: any) {
                   }
                   placeholder="0000000000"
                 />
-                <View style={styles.row}>
-                  <View style={{ flex: 2, marginRight: 10 }}>
+                <View style={[styles.row, { width: "100%" }]}>
+                  <View style={{ flex: 1, minWidth: 0, marginRight: 10 }}>
                     <Text style={styles.inputLabel}>
                       GENDER <Text style={{ color: "red" }}>*</Text>
                     </Text>
@@ -318,7 +362,7 @@ export default function Register({ navigation }: any) {
                       <ChevronRight size={16} color="#0EA5E9" />
                     </TouchableOpacity>
                   </View>
-                  <View style={{ flex: 1 }}>
+                  <View style={{ flex: 1, minWidth: 0, marginLeft: 10 }}>
                     <Text style={styles.inputLabel}>
                       DATE OF BIRTH <Text style={{ color: "red" }}>*</Text>
                     </Text>
@@ -680,7 +724,11 @@ const styles = StyleSheet.create({
   },
   innerIcon: { marginRight: 12 },
   textInput: { flex: 1, color: "#001F3F", fontWeight: "600", fontSize: 15 },
-  row: { flexDirection: "row" },
+  row: {
+    flexDirection: "row",
+    gap: 10,
+  },
+
   autoField: { flex: 1, justifyContent: "center", marginLeft: 10 },
   autoValue: {
     color: "#0EA5E9",
@@ -864,4 +912,25 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     backgroundColor: "#FFF",
   },
+
+  // Notification Banner Styles
+  statusBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 16,
+    marginBottom: 20,
+    gap: 12,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  successBanner: { backgroundColor: "#F0FDF4", borderColor: "#BBF7D0" },
+  errorBanner: { backgroundColor: "#FEF2F2", borderColor: "#FECACA" },
+  statusText: { fontSize: 13, fontWeight: "700", flex: 1 },
+  successText: { color: "#166534" },
+  errorText: { color: "#991B1B" },
 });
