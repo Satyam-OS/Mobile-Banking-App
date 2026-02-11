@@ -1,0 +1,590 @@
+import {
+    ArrowLeft,
+    ArrowRight,
+    Building2,
+    CheckCircle2,
+    CreditCard,
+    Phone,
+    PiggyBank,
+    ShieldCheck,
+    Sparkles,
+    TrendingUp,
+    Wallet,
+    X,
+} from "lucide-react-native";
+import React, { useEffect, useRef, useState } from "react";
+import {
+    Alert,
+    Animated,
+    Dimensions,
+    Modal,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
+// Integrated your backend service
+import { authService } from "../services/authService";
+
+const { width } = Dimensions.get("window");
+
+const services = [
+  {
+    icon: Wallet,
+    title: "Savings",
+    desc: "High interest",
+    color: "#0EA5E9",
+    tag: "Popular",
+    info: [
+      "Up to 7.5% Annual Interest",
+      "Zero Monthly Maintenance",
+      "Instant Digital Account Opening",
+      "Unlimited ATM Withdrawals",
+    ],
+  },
+  {
+    icon: CreditCard,
+    title: "Credit",
+    desc: "Instant limit",
+    color: "#0284C7",
+    tag: "New",
+    info: [
+      "Instant Credit Line Approval",
+      "No Annual Fees for 1st Year",
+      "5% Cashback on Partner Brands",
+      "Convert Big Spends to Easy EMI",
+    ],
+  },
+  {
+    icon: TrendingUp,
+    title: "Invest",
+    desc: "Global stocks",
+    color: "#001F3F",
+    tag: "Pro",
+    info: [
+      "Access to US & Indian Markets",
+      "Zero Brokerage on SIPs",
+      "AI-Powered Portfolio Insights",
+      "Real-time Market Analytics",
+    ],
+  },
+  {
+    icon: PiggyBank,
+    title: "Safe",
+    desc: "Insured assets",
+    color: "#0369A1",
+    tag: "Secure",
+    info: [
+      "DICGC Insured up to ₹5 Lakh",
+      "Military Grade Digital Vault",
+      "24/7 Fraud Monitoring",
+      "Nominee Management System",
+    ],
+  },
+];
+
+const AnimatedButton = ({ onPress, children, style }: any) => {
+  const scaleValue = useRef(new Animated.Value(1)).current;
+
+  const onPressIn = () => {
+    Animated.spring(scaleValue, {
+      toValue: 0.95,
+      useNativeDriver: true,
+    }).start();
+  };
+  const onPressOut = () => {
+    Animated.spring(scaleValue, {
+      toValue: 1,
+      friction: 3,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  return (
+    <TouchableOpacity
+      activeOpacity={1}
+      onPress={onPress}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+    >
+      <Animated.View style={[style, { transform: [{ scale: scaleValue }] }]}>
+        {children}
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
+
+export default function GuestExplore({ navigation }: any) {
+  const [showModal, setShowModal] = useState(false);
+  const [selectedService, setSelectedService] = useState<any>(null);
+  const [mobile, setMobile] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const [isSplashVisible, setIsSplashVisible] = useState(true);
+  const splashOpacity = useRef(new Animated.Value(0)).current;
+  const splashScale = useRef(new Animated.Value(0.8)).current;
+  const splashContainerOpacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(splashOpacity, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(splashScale, {
+        toValue: 1,
+        friction: 5,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    setTimeout(() => {
+      Animated.timing(splashContainerOpacity, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }).start(() => setIsSplashVisible(false));
+    }, 2000);
+  }, []);
+
+  const sendOtp = async () => {
+    if (mobile.length !== 10) {
+      Alert.alert("Invalid Number", "Enter a valid 10-digit mobile number");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      // Calls POST https://unhastened-monopolistically-shirlee.ngrok-free.dev/otp/generate
+      await authService.generateOtp(mobile);
+
+      setShowModal(false);
+      navigation.navigate("GuestOtp", { mobile });
+    } catch (error: any) {
+      Alert.alert(
+        "Error",
+        error.message || "Failed to send OTP. Please check your connection.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" />
+
+      {isSplashVisible && (
+        <Animated.View
+          style={[styles.splashOverlay, { opacity: splashContainerOpacity }]}
+        >
+          <Animated.View
+            style={{
+              opacity: splashOpacity,
+              transform: [{ scale: splashScale }],
+            }}
+          >
+            <Text style={styles.splashText}>NEXUS</Text>
+            <Text style={styles.splashSubText}>INSTITUTIONAL BANKING</Text>
+          </Animated.View>
+        </Animated.View>
+      )}
+
+      <View style={styles.container}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 120 }}
+        >
+          <View style={styles.header}>
+            <View style={styles.headerTop}>
+              <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+                <ArrowLeft size={20} color="#FFF" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+                <Text style={styles.signInText}>SIGN IN</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.tagLine}>
+              <Sparkles size={12} color="#7DD3FC" />
+              <Text style={styles.tagLineText}>
+                NEXUS INSTITUTIONAL BANKING
+              </Text>
+            </View>
+
+            <Text style={styles.title}>
+              Your Future {"\n"}
+              <Text style={{ color: "#38BDF8" }}>Reimagined</Text>
+            </Text>
+
+            <Text style={styles.description}>
+              Discover a smarter way to manage your wealth.
+            </Text>
+          </View>
+
+          <View style={styles.content}>
+            <AnimatedButton
+              style={styles.ctaCard}
+              onPress={() => setShowModal(true)}
+            >
+              <View style={styles.ctaIconBox}>
+                <Building2 size={24} color="#001F3F" />
+              </View>
+              <View style={styles.ctaInfo}>
+                <Text style={styles.ctaTitle}>Open Premium Account</Text>
+                <Text style={styles.ctaSubtitle}>
+                  ZERO BALANCE • INSTANT KYC
+                </Text>
+              </View>
+              <View style={styles.ctaArrowBtn}>
+                <ArrowRight size={18} color="#FFF" />
+              </View>
+            </AnimatedButton>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionHeader}>BANKING SUITES</Text>
+              <View style={styles.grid}>
+                {services.map((s, idx) => (
+                  <AnimatedButton
+                    key={idx}
+                    style={styles.gridItem}
+                    onPress={() => setSelectedService(s)}
+                  >
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{s.tag}</Text>
+                    </View>
+                    <View
+                      style={[styles.gridIconBox, { backgroundColor: s.color }]}
+                    >
+                      <s.icon size={20} color="#FFF" />
+                    </View>
+                    <Text style={styles.gridTitle}>{s.title}</Text>
+                    <Text style={styles.gridDesc}>{s.desc}</Text>
+                  </AnimatedButton>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.securityBox}>
+              <View style={styles.securityHeader}>
+                <ShieldCheck size={22} color="#10B981" />
+                <Text style={styles.securityTitle}>SECURITY PROTOCOL</Text>
+              </View>
+              {[
+                "Bank Grade Encryption",
+                "Multi-factor Vault Access",
+                "SIPC Protected Assets",
+              ].map((text, i) => (
+                <View key={i} style={styles.securityItem}>
+                  <View style={styles.securityDot} />
+                  <Text style={styles.securityText}>{text}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </ScrollView>
+
+        <View style={styles.fixedFooter}>
+          <AnimatedButton
+            style={styles.primaryBtn}
+            onPress={() => setShowModal(true)}
+          >
+            <Text style={styles.primaryBtnText}>CREATE FREE ACCOUNT</Text>
+          </AnimatedButton>
+        </View>
+
+        {/* MOBILE OTP MODAL */}
+        <Modal transparent animationType="fade" visible={showModal}>
+          <View style={styles.modalBg}>
+            <View style={styles.modalCard}>
+              <Phone size={28} color="#001F3F" />
+              <Text style={styles.modalTitle}>Enter Mobile Number</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="10-digit mobile number"
+                placeholderTextColor="#94A3B8"
+                keyboardType="number-pad"
+                maxLength={10}
+                value={mobile}
+                onChangeText={(t) => setMobile(t.replace(/[^0-9]/g, ""))}
+              />
+              <AnimatedButton
+                style={[styles.modalBtn, loading && { opacity: 0.7 }]}
+                onPress={sendOtp}
+                disabled={loading}
+              >
+                <Text style={styles.modalBtnText}>
+                  {loading ? "SENDING..." : "SEND OTP"}
+                </Text>
+              </AnimatedButton>
+              <TouchableOpacity
+                onPress={() => setShowModal(false)}
+                disabled={loading}
+              >
+                <Text style={styles.modalCancel}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* SERVICE INFO MODAL */}
+        <Modal transparent animationType="slide" visible={!!selectedService}>
+          <View style={styles.modalBg}>
+            <View style={styles.infoModalCard}>
+              <View style={styles.infoModalHeader}>
+                <View
+                  style={[
+                    styles.gridIconBox,
+                    {
+                      backgroundColor: selectedService?.color,
+                      marginBottom: 0,
+                    },
+                  ]}
+                >
+                  {selectedService && (
+                    <selectedService.icon size={20} color="#FFF" />
+                  )}
+                </View>
+                <View style={{ flex: 1, marginLeft: 15 }}>
+                  <Text style={styles.infoModalTitle}>
+                    {selectedService?.title} Benefits
+                  </Text>
+                  <Text style={styles.infoModalSubtitle}>
+                    {selectedService?.desc}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setSelectedService(null)}
+                  style={styles.closeBtn}
+                >
+                  <X size={20} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.infoList}>
+                {selectedService?.info.map((item: string, i: number) => (
+                  <View key={i} style={styles.infoItem}>
+                    <CheckCircle2 size={18} color="#10B981" />
+                    <Text style={styles.infoItemText}>{item}</Text>
+                  </View>
+                ))}
+              </View>
+
+              <AnimatedButton
+                style={[styles.modalBtn, { marginTop: 10 }]}
+                onPress={() => {
+                  setSelectedService(null);
+                  setShowModal(true);
+                }}
+              >
+                <Text style={styles.modalBtnText}>GET STARTED NOW</Text>
+              </AnimatedButton>
+            </View>
+          </View>
+        </Modal>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: "#001F3F" },
+  container: { flex: 1, backgroundColor: "#F0F9FF" },
+  splashOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#001F3F",
+    zIndex: 9999,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  splashText: {
+    color: "#FFF",
+    fontSize: 42,
+    fontWeight: "900",
+    letterSpacing: 8,
+    textAlign: "center",
+  },
+  splashSubText: {
+    color: "#38BDF8",
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 2,
+    textAlign: "center",
+    marginTop: 10,
+  },
+  header: {
+    backgroundColor: "#001F3F",
+    padding: 24,
+    paddingBottom: 60,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerTop: { flexDirection: "row", justifyContent: "space-between" },
+  signInText: { color: "#38BDF8", fontWeight: "900" },
+  tagLine: { flexDirection: "row", gap: 6, marginVertical: 10 },
+  tagLineText: { color: "#7DD3FC", fontSize: 10, fontWeight: "900" },
+  title: { fontSize: 32, fontWeight: "900", color: "#FFF" },
+  description: { color: "#CBD5E1", marginTop: 10 },
+  content: { padding: 20, marginTop: -30 },
+  ctaCard: {
+    backgroundColor: "#FFF",
+    padding: 20,
+    borderRadius: 24,
+    flexDirection: "row",
+    alignItems: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    marginBottom: 20,
+  },
+  ctaIconBox: { backgroundColor: "#E0F2FE", padding: 12, borderRadius: 12 },
+  ctaInfo: { flex: 1, marginLeft: 16 },
+  ctaTitle: { fontWeight: "900", color: "#001F3F" },
+  ctaSubtitle: { fontSize: 10, color: "#64748B" },
+  ctaArrowBtn: { backgroundColor: "#001F3F", padding: 14, borderRadius: 20 },
+  section: { marginVertical: 24 },
+  sectionHeader: {
+    fontSize: 12,
+    fontWeight: "900",
+    color: "#001F3F",
+    letterSpacing: 2,
+    marginBottom: 16,
+  },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  gridItem: {
+    width: (width - 52) / 2,
+    backgroundColor: "#FFF",
+    padding: 16,
+    borderRadius: 24,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+  },
+  badge: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    backgroundColor: "#F0F9FF",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  badgeText: { fontSize: 8, fontWeight: "900", color: "#0EA5E9" },
+  gridIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  gridTitle: { fontSize: 14, fontWeight: "900", color: "#001F3F" },
+  gridDesc: { fontSize: 10, fontWeight: "700", color: "#64748B", marginTop: 4 },
+  securityBox: {
+    backgroundColor: "#FFF",
+    padding: 24,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    marginBottom: 24,
+  },
+  securityHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 16,
+  },
+  securityTitle: { fontSize: 13, fontWeight: "900", color: "#001F3F" },
+  securityItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 10,
+  },
+  securityDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#0EA5E9",
+  },
+  securityText: { fontSize: 11, fontWeight: "700", color: "#64748B" },
+  fixedFooter: {
+    padding: 20,
+    backgroundColor: "#FFF",
+    borderTopWidth: 1,
+    borderTopColor: "#F1F5F9",
+  },
+  primaryBtn: {
+    backgroundColor: "#001F3F",
+    height: 56,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  primaryBtnText: { color: "#FFF", fontWeight: "900" },
+  modalBg: {
+    flex: 1,
+    backgroundColor: "rgba(0,31,63,0.7)",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalCard: {
+    backgroundColor: "#FFF",
+    padding: 24,
+    borderRadius: 24,
+    alignItems: "center",
+  },
+  infoModalCard: {
+    backgroundColor: "#FFF",
+    padding: 24,
+    borderRadius: 30,
+    width: "100%",
+  },
+  infoModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  infoModalTitle: { fontSize: 18, fontWeight: "900", color: "#001F3F" },
+  infoModalSubtitle: { fontSize: 12, color: "#64748B", fontWeight: "600" },
+  closeBtn: { backgroundColor: "#F1F5F9", padding: 8, borderRadius: 12 },
+  infoList: { marginBottom: 20 },
+  infoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 15,
+  },
+  infoItemText: { fontSize: 14, fontWeight: "700", color: "#334155" },
+  modalTitle: { fontSize: 16, fontWeight: "900", marginVertical: 12 },
+  input: {
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    color: "#000",
+  },
+  modalBtn: {
+    backgroundColor: "#001F3F",
+    padding: 14,
+    borderRadius: 14,
+    width: "100%",
+    alignItems: "center",
+  },
+  modalBtnText: { color: "#FFF", fontWeight: "900" },
+  modalCancel: { marginTop: 12, color: "#64748B" },
+});
