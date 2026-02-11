@@ -1,20 +1,20 @@
 import { ArrowRight } from "lucide-react-native";
 import React, { useState } from "react";
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const API_BASE_URL =
-  "  https://unhastened-monopolistically-shirlee.ngrok-free.dev";
+  "https://mobile-banking-app.onrender.com";
 
 export default function GuestDetails({ navigation }: any) {
   const [mobile, setMobile] = useState("");

@@ -1,31 +1,31 @@
 import {
-    ArrowLeft,
-    ArrowRight,
-    Building2,
-    CheckCircle2,
-    CreditCard,
-    Phone,
-    PiggyBank,
-    ShieldCheck,
-    Sparkles,
-    TrendingUp,
-    Wallet,
-    X,
+  ArrowLeft,
+  ArrowRight,
+  Building2,
+  CheckCircle2,
+  CreditCard,
+  Phone,
+  PiggyBank,
+  ShieldCheck,
+  Sparkles,
+  TrendingUp,
+  Wallet,
+  X,
 } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    Alert,
-    Animated,
-    Dimensions,
-    Modal,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Animated,
+  Dimensions,
+  Modal,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 // Integrated your backend service
 import { authService } from "../services/authService";
@@ -161,7 +161,7 @@ export default function GuestExplore({ navigation }: any) {
 
     try {
       setLoading(true);
-      // Calls POST https://unhastened-monopolistically-shirlee.ngrok-free.dev/otp/generate
+      // Calls POST https://mobile-banking-app.onrender.com/otp/generate
       await authService.generateOtp(mobile);
 
       setShowModal(false);
