@@ -42,3 +42,17 @@ app-example
 /ios
 /android
 .idea/modules.xml
+
+# IntelliJ
+.idea/
+*.iml
+
+# Maven
+target/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
