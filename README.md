@@ -1,50 +1,46 @@
-# Welcome to your Expo app 👋
+# 🏦 Mobile Banking App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A high-performance, professional-grade mobile banking application built with **React Native (Expo)** and **TypeScript**. This project features a comprehensive 12-screen architecture designed with a premium "Lighter Sky Blue" professional theme.
 
-## Get started
+## 📋 Project Overview
 
-1. Install dependencies
+This application is a complete banking client focusing on high-feature density and a corporate aesthetic. The UI is built to remain consistent across all pages, maintaining a professional blue and white color palette.
 
-   ```bash
-   npm install
-   ```
+## 🚀 Key Features
 
-2. Start the app
+- **12-Screen Architecture:** A complete banking journey including:
+- **Onboarding & Auth:** Professional Registration, Guest Access, and Login flows.
+- **User Management:** Secure KYC (Know Your Customer) and profile management pages.
+- **Account Services:** Dynamic Dashboard, transaction listing, and account overview.
+- Highly functional layouts designed for a professional banking experience.
+- Responsive design optimized for both mobile and web previews.
 
-   ```bash
-   npx expo start
-   ```
+## 🛠 Technical Stack
 
-In the output, you'll find options to open the app in a
+- **Framework:** React Native (Expo)
+- **Language:** TypeScript
+- **Theme:** Professional Lighter Sky Blue & Navy White
+- **Icons:** Lucide-React-Native
+- **Navigation:** React Navigation (Stack & Tab patterns)
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## 🏗 Project Structure
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+The frontend is architected with a focus on clean code and professional design standards. All screens (Register, Guest, Dashboard, and KYC flow) are built using a unified theme to ensure a high-standard user experience.
 
-## Get a fresh project
-
-When you're ready, run:
+1. **Install Dependencies**
 
 ```bash
-npm run reset-project
+npm install
+
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. **Start the App**
 
-## Learn more
+```bash
+npx expo start
 
-To learn more about developing your project with Expo, look at the following resources:
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## 👤 Project Lead :
 
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+**Hritik Pandit** - _Frontend Architecture & UI/UX Design_
