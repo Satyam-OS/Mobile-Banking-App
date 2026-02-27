@@ -1,6 +1,7 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import AdminDashboard from "../screens/AdminDashboard";
+import BalanceSecurity from "../screens/BalanceSecurity";
 import Cards from "../screens/Cards";
 import GuestExplore from "../screens/GuestExplore";
 import GuestOtp from "../screens/GuestOtp";
@@ -33,6 +34,7 @@ export default function AppNavigator() {
       <Stack.Screen name="Login" component={Login} />
       <Stack.Screen name="SetPassword" component={SetPassword} />
       <Stack.Screen name="Dashboard" component={Index} />
+      <Stack.Screen name="BalanceSecurity" component={BalanceSecurity} />
       <Stack.Screen name="Cards" component={Cards} />
       <Stack.Screen name="Payments" component={Payments} />
       <Stack.Screen name="Transfer" component={Transfer} />
