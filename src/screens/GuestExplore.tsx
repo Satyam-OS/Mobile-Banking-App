@@ -161,7 +161,7 @@ export default function GuestExplore({ navigation }: any) {
 
     try {
       setLoading(true);
-      // Calls POST https://unhastened-monopolistically-shirlee.ngrok-free.dev/otp/generate
+      // Calls POST https://mobile-banking-app.onrender.com/otp/generate
       await authService.generateOtp(mobile);
 
       setShowModal(false);

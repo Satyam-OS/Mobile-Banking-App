@@ -33,7 +33,7 @@ const { width } = Dimensions.get("window");
 const mockUser = {
   name: "Hritik Pandit",
   customerId: "NX-882910",
-  phone: "+1 (555) 012-3456",
+  phone: "7070707070",
   email: "hritik.nexus@premium.com",
   avatar: null,
 };
@@ -41,16 +41,21 @@ const mockUser = {
 export default function Profile({ navigation }: any) {
   const [isEditing, setIsEditing] = useState(false);
 
-  // UPDATED: Routes now match your AppNavigator exactly
+  // UPDATED: Added 'inUse' logic based on whether a route exists
   const menuItems = [
-    { icon: User, label: "Personal Details", route: "PersonalDetails" },
-    { icon: CreditCard, label: "Linked Accounts", route: "" },
-    { icon: Bell, label: "Notifications", route: "" },
-    { icon: ShieldCheck, label: "Security Settings", route: "" },
-    { icon: Smartphone, label: "Device Management", route: "" },
-    { icon: FileText, label: "Statements", route: "" },
-    { icon: HelpCircle, label: "Help & Support", route: "" },
-    { icon: Settings, label: "App Settings", route: "" },
+    {
+      icon: User,
+      label: "Personal Details",
+      route: "PersonalDetails",
+      inUse: true,
+    },
+    { icon: CreditCard, label: "Linked Accounts", route: "", inUse: false },
+    { icon: Bell, label: "Notifications", route: "", inUse: false },
+    { icon: ShieldCheck, label: "Security Settings", route: "", inUse: false },
+    { icon: Smartphone, label: "Device Management", route: "", inUse: false },
+    { icon: FileText, label: "Statements", route: "", inUse: false },
+    { icon: HelpCircle, label: "Help & Support", route: "", inUse: false },
+    { icon: Settings, label: "App Settings", route: "", inUse: false },
   ];
 
   const getInitials = (name: string) => {
@@ -63,7 +68,7 @@ export default function Profile({ navigation }: any) {
 
   // Helper to handle navigation safely
   const handleNavigation = (route: string) => {
-    if (navigation.navigate) {
+    if (route && navigation.navigate) {
       navigation.navigate(route);
     }
   };
@@ -89,9 +94,11 @@ export default function Profile({ navigation }: any) {
 
             <Text style={styles.headerTitle}>ACCOUNT PROFILE</Text>
 
+            {/* UPDATED: Added opacity to fade the pencil button since it's not in use */}
             <TouchableOpacity
-              style={styles.circleBtn}
+              style={[styles.circleBtn, { opacity: 0.35 }]}
               onPress={() => setIsEditing(!isEditing)}
+              disabled={true}
             >
               <Edit2 size={20} color="#FFF" />
             </TouchableOpacity>
@@ -171,8 +178,9 @@ export default function Profile({ navigation }: any) {
           {menuItems.map((item, index) => (
             <TouchableOpacity
               key={index}
-              style={styles.menuItem}
+              style={[styles.menuItem, !item.inUse && { opacity: 0.35 }]}
               onPress={() => handleNavigation(item.route)}
+              disabled={!item.inUse}
             >
               <View style={styles.menuIconBox}>
                 <item.icon size={20} color="#0EA5E9" />

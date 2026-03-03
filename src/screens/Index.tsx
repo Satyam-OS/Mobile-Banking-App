@@ -23,7 +23,6 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
-  FlatList,
   Platform,
   ScrollView,
   StatusBar,
@@ -35,14 +34,19 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width: windowWidth } = Dimensions.get("window");
-const CONTAINER_WIDTH = windowWidth > 500 ? 400 : windowWidth;
-const CARD_WIDTH = CONTAINER_WIDTH - 30;
+
+// Responsive Logic
+const IS_WIDE = windowWidth > 900;
+const MOBILE_CARD_WIDTH = windowWidth * 0.85;
+const WEB_CARD_WIDTH = 320;
 
 const HomeScreen = ({ navigation }: any) => {
-  const [showBalance, setShowBalance] = useState(false);
+  // FIXED: Track balance visibility per card ID
+  const [visibleBalances, setVisibleBalances] = useState<{
+    [key: string]: boolean;
+  }>({});
   const [isLoading, setIsLoading] = useState(true);
 
-  // --- DYNAMIC DATA STATES ---
   const [userProfile, setUserProfile] = useState({
     firstName: "User",
     initials: "U",
@@ -102,7 +106,6 @@ const HomeScreen = ({ navigation }: any) => {
     },
   ]);
 
-  // --- DYNAMIC NAME FETCHING ---
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -122,118 +125,148 @@ const HomeScreen = ({ navigation }: any) => {
     fetchUserData();
   }, []);
 
-  const renderCard = ({ item }: any) => (
-    <View style={[styles.premiumCard, { backgroundColor: item.color }]}>
-      <View style={styles.cardOverlayCircle} />
+  // Toggle helper for specific card
+  const toggleBalance = (id: string) => {
+    setVisibleBalances((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
 
-      <View style={styles.cardTopRow}>
-        <View style={styles.cardHeaderInfo}>
-          <View style={styles.accountTypeRow}>
-            <Text style={styles.cardTagText}>{item.type}</Text>
-            <View style={styles.miniTag}>
-              <Text style={styles.miniTagText}>{item.tag}</Text>
+  const renderCard = (item: any) => {
+    const isVisible = !!visibleBalances[item.id];
+
+    return (
+      <View
+        key={item.id}
+        style={[
+          styles.premiumCard,
+          {
+            backgroundColor: item.color,
+            width: IS_WIDE ? WEB_CARD_WIDTH : MOBILE_CARD_WIDTH,
+          },
+          !IS_WIDE && { marginRight: 15 },
+        ]}
+      >
+        <View style={styles.cardOverlayCircle} />
+
+        <View style={styles.cardTopRow}>
+          <View style={styles.cardHeaderInfo}>
+            <View style={styles.accountTypeRow}>
+              <Text style={styles.cardTagText}>{item.type}</Text>
+              <View style={styles.miniTag}>
+                <Text style={styles.miniTagText}>{item.tag}</Text>
+              </View>
+            </View>
+            <Text style={styles.cardNameText}>{item.name}</Text>
+          </View>
+          <Text style={styles.visaText}>VISA</Text>
+        </View>
+
+        <View style={styles.cardMidSection}>
+          <View style={styles.chipAndNumber}>
+            <View style={styles.goldChip} />
+            <Text style={styles.cardAccNumber}>
+              •••• •••• •••• {item.accNo.split(" ").pop()}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.balanceSection}>
+          <View>
+            <Text style={styles.balanceLabel}>Available Balance</Text>
+            <View style={styles.balanceAmountRow}>
+              <Text style={styles.currencySymbol}>₹</Text>
+              <Text style={styles.mainBalance}>
+                {isVisible ? item.balance.replace("₹", "") : "••••••••"}
+              </Text>
+              <TouchableOpacity
+                onPress={() => toggleBalance(item.id)}
+                style={styles.eyeBtn}
+              >
+                {isVisible ? (
+                  <Eye size={18} color="#FFF" />
+                ) : (
+                  <EyeOff size={18} color="#FFF" />
+                )}
+              </TouchableOpacity>
             </View>
           </View>
-          <Text style={styles.cardNameText}>{item.name}</Text>
-        </View>
-        <Text style={styles.visaText}>VISA</Text>
-      </View>
 
-      <View style={styles.cardMidSection}>
-        <View style={styles.chipAndNumber}>
-          <View style={styles.goldChip} />
-          <Text style={styles.cardAccNumber}>
-            •••• •••• •••• {item.accNo.split(" ").pop()}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.balanceSection}>
-        <View>
-          <Text style={styles.balanceLabel}>Available Balance</Text>
-          <View style={styles.balanceAmountRow}>
-            <Text style={styles.currencySymbol}>₹</Text>
-            <Text style={styles.mainBalance}>
-              {showBalance ? item.balance.replace("₹", "") : "••••••••"}
-            </Text>
+          <View style={styles.cardActionContainer}>
+            <TouchableOpacity style={styles.cardActionCircle}>
+              <CreditCard size={18} color="#FFF" />
+            </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => setShowBalance(!showBalance)}
-              style={styles.eyeBtn}
+              style={styles.cardActionCircle}
+              onPress={() => navigation.navigate("Invest")}
             >
-              {showBalance ? (
-                <Eye size={18} color="#FFF" />
-              ) : (
-                <EyeOff size={18} color="#FFF" />
-              )}
+              <TrendingUp size={18} color="#FFF" />
             </TouchableOpacity>
           </View>
         </View>
-
-        <View style={styles.cardActionContainer}>
-          <TouchableOpacity style={styles.cardActionCircle}>
-            <CreditCard size={18} color="#FFF" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.cardActionCircle}
-            onPress={() => navigation.navigate("Invest")}
-          >
-            <TrendingUp size={18} color="#FFF" />
-          </TouchableOpacity>
-        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   if (isLoading) {
     return (
       <View style={[styles.outerContainer, { justifyContent: "center" }]}>
-        <ActivityIndicator size="large" color="#002D72" />
+        <ActivityIndicator size="large" color="#FFF" />
       </View>
     );
   }
 
   return (
     <View style={styles.outerContainer}>
-      <SafeAreaView style={styles.container} edges={["top"]}>
-        <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="light-content" backgroundColor="#002D72" />
 
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{userProfile.initials}</Text>
+      <View style={styles.brandingSection}>
+        <SafeAreaView edges={["top"]}>
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{userProfile.initials}</Text>
+              </View>
+              <View>
+                <Text style={styles.greetingText}>Good Afternoon 👋</Text>
+                <Text style={styles.userName}>{userProfile.firstName}</Text>
+              </View>
             </View>
-            <View>
-              <Text style={styles.greetingText}>Good Afternoon 👋</Text>
-              <Text style={styles.userName}>{userProfile.firstName}</Text>
+            <View style={styles.headerIcons}>
+              <TouchableOpacity style={styles.iconCircle}>
+                <Search size={20} color="#002D72" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.iconCircle}>
+                <Bell size={20} color="#002D72" />
+              </TouchableOpacity>
             </View>
           </View>
-          <View style={styles.headerIcons}>
-            <TouchableOpacity style={styles.iconCircle}>
-              <Search size={20} color="#002D72" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconCircle}>
-              <Bell size={20} color="#002D72" />
-            </TouchableOpacity>
-          </View>
-        </View>
+        </SafeAreaView>
+      </View>
 
+      <View style={styles.formContainer}>
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <FlatList
-            data={accounts}
-            horizontal
-            style={{ flexGrow: 0 }}
-            showsHorizontalScrollIndicator={false}
-            snapToInterval={CARD_WIDTH + 12}
-            decelerationRate="fast"
-            snapToAlignment="start"
-            contentContainerStyle={styles.cardCarousel}
-            ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
-            renderItem={renderCard}
-            keyExtractor={(item) => item.id}
-          />
+          <View style={styles.cardScrollWrapper}>
+            {IS_WIDE ? (
+              <View style={styles.webCardCentering}>
+                {accounts.map((item) => renderCard(item))}
+              </View>
+            ) : (
+              <ScrollView
+                horizontal={true}
+                showsHorizontalScrollIndicator={false}
+                snapToInterval={MOBILE_CARD_WIDTH + 15}
+                decelerationRate="fast"
+                contentContainerStyle={{ paddingHorizontal: 20 }}
+              >
+                {accounts.map((item) => renderCard(item))}
+              </ScrollView>
+            )}
+          </View>
 
           <View style={styles.whiteCard}>
             <View style={styles.actionGrid}>
@@ -243,64 +276,90 @@ const HomeScreen = ({ navigation }: any) => {
                   icon: ArrowUpRight,
                   color: "#3B82F6",
                   route: "Transfer",
+                  active: true,
                 },
                 {
                   label: "Scan & Pay",
                   icon: ScanLine,
                   color: "#10B981",
                   route: "",
+                  active: false,
                 },
                 {
                   label: "Pay Bills",
                   icon: FileText,
                   color: "#F59E0B",
                   route: "",
+                  active: false,
                 },
                 {
                   label: "Mobile Recharge",
                   icon: Smartphone,
                   color: "#8B5CF6",
                   route: "",
+                  active: false,
                 },
                 {
                   label: "FASTag",
                   icon: Zap,
                   color: "#EF4444",
                   route: "",
+                  active: false,
                 },
                 {
                   label: "Investments",
                   icon: Globe,
                   color: "#06B6D4",
                   route: "Invest",
+                  active: true,
                 },
                 {
                   label: "Insurance",
                   icon: ShieldCheck,
                   color: "#F43F5E",
                   route: "",
+                  active: false,
                 },
                 {
                   label: "Loans",
                   icon: LayoutGrid,
                   color: "#6366F1",
                   route: "",
+                  active: false,
                 },
               ].map((item, index) => (
                 <TouchableOpacity
                   key={index}
-                  style={styles.actionBtn}
-                  onPress={() => navigation.navigate(item.route)}
+                  disabled={!item.active}
+                  style={[
+                    styles.actionBtn,
+                    !item.active && { opacity: 0.5 }, // Faded state for inactive buttons
+                  ]}
+                  onPress={() => item.route && navigation.navigate(item.route)}
                 >
                   <View
                     style={[
                       styles.actionIconBox,
-                      { backgroundColor: `${item.color}15` },
+                      {
+                        backgroundColor: item.active
+                          ? `${item.color}15`
+                          : "#F1F5F9",
+                      },
                     ]}
                   >
-                    <item.icon size={22} color={item.color} />
+                    <item.icon
+                      size={22}
+                      color={item.active ? item.color : "#94A3B8"}
+                    />
                   </View>
-                  <Text style={styles.actionText}>{item.label}</Text>
+                  <Text
+                    style={[
+                      styles.actionText,
+                      !item.active && { color: "#94A3B8" },
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -333,7 +392,6 @@ const HomeScreen = ({ navigation }: any) => {
                 <Text style={styles.viewAll}>View All</Text>
               </TouchableOpacity>
             </View>
-
             {recentTransactions.map((tx, i) => (
               <View key={i} style={styles.txRow}>
                 <View
@@ -365,63 +423,61 @@ const HomeScreen = ({ navigation }: any) => {
             <Text style={styles.footerText}>ENCRYPTED & SECURE</Text>
           </View>
         </ScrollView>
+      </View>
 
-        <View style={styles.bottomTab}>
-          <TouchableOpacity
-            style={styles.tabItem}
-            onPress={() => navigation.navigate("Dashboard")}
-          >
-            <Home size={22} color="#002D72" />
-            <Text style={[styles.tabText, { color: "#002D72" }]}>HOME</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.tabItem}
-            onPress={() => navigation.navigate("Payments")}
-          >
-            <Wallet size={22} color="#94A3B8" />
-            <Text style={styles.tabText}>PAYMENTS</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.tabItem}
-            onPress={() => navigation.navigate("Cards")}
-          >
-            <CreditCard size={22} color="#94A3B8" />
-            <Text style={styles.tabText}>CARDS</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.tabItem}
-            onPress={() => navigation.navigate("Invest")}
-          >
-            <Zap size={22} color="#94A3B8" />
-            <Text style={styles.tabText}>INVEST</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.tabItem}
-            onPress={() => navigation.navigate("Profile")}
-          >
-            <LayoutGrid size={22} color="#94A3B8" />
-            <Text style={styles.tabText}>MORE</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+      <View style={styles.bottomTab}>
+        <TouchableOpacity
+          style={styles.tabItem}
+          onPress={() => navigation.navigate("Dashboard")}
+        >
+          <Home size={22} color="#002D72" />
+          <Text style={[styles.tabText, { color: "#002D72" }]}>HOME</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.tabItem}
+          onPress={() => navigation.navigate("Payments")}
+        >
+          <Wallet size={22} color="#94A3B8" />
+          <Text style={styles.tabText}>PAYMENTS</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.tabItem}
+          onPress={() => navigation.navigate("Cards")}
+        >
+          <CreditCard size={22} color="#94A3B8" />
+          <Text style={styles.tabText}>CARDS</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.tabItem}
+          onPress={() => navigation.navigate("Invest")}
+        >
+          <Zap size={22} color="#94A3B8" />
+          <Text style={styles.tabText}>INVEST</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.tabItem}
+          onPress={() => navigation.navigate("Profile")}
+        >
+          <LayoutGrid size={22} color="#94A3B8" />
+          <Text style={styles.tabText}>MORE</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  outerContainer: { flex: 1, backgroundColor: "#E0F2FE", alignItems: "center" },
-  container: { flex: 1, backgroundColor: "#F8FAFC", width: CONTAINER_WIDTH },
+  outerContainer: { flex: 1, backgroundColor: "#002D72" },
+  brandingSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    paddingTop: Platform.OS === "web" ? 20 : 0,
+    backgroundColor: "#002D72",
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    padding: 20,
-    backgroundColor: "#FFF",
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    ...Platform.select({
-      web: { boxShadow: "0px 4px 10px rgba(0,0,0,0.05)" },
-      default: { elevation: 5 },
-    }),
+    alignItems: "center",
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   avatar: {
@@ -433,22 +489,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   avatarText: { color: "#002D72", fontWeight: "900" },
-  userName: { fontSize: 18, fontWeight: "800", color: "#002D72" },
-  greetingText: { fontSize: 11, color: "#64748B", fontWeight: "600" },
+  userName: { fontSize: 18, fontWeight: "800", color: "#FFF" },
+  greetingText: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.7)",
+    fontWeight: "600",
+  },
   headerIcons: { flexDirection: "row", gap: 8 },
   iconCircle: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: "rgba(255,255,255,0.2)",
     justifyContent: "center",
     alignItems: "center",
   },
-  scrollContent: { paddingBottom: 110 },
-  cardCarousel: { paddingVertical: 20, paddingHorizontal: 15 },
-
+  formContainer: {
+    flex: 1,
+    backgroundColor: "#E0F2FE", // Lighter sky blue theme
+    zIndex: 1,
+  },
+  scrollContent: { paddingBottom: 110, paddingTop: 20 },
+  cardScrollWrapper: { paddingVertical: 10 },
+  webCardCentering: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 30,
+    paddingHorizontal: 20,
+  },
   premiumCard: {
-    width: CARD_WIDTH,
     height: 210,
     borderRadius: 32,
     padding: 22,
@@ -500,7 +569,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   miniTagText: { fontSize: 9, fontWeight: "900", color: "#002D72" },
-
   cardMidSection: { marginVertical: 10 },
   chipAndNumber: { flexDirection: "row", alignItems: "center", gap: 15 },
   goldChip: {
@@ -518,7 +586,6 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     opacity: 0.9,
   },
-
   balanceSection: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -539,7 +606,6 @@ const styles = StyleSheet.create({
   },
   mainBalance: { color: "#FFF", fontSize: 28, fontWeight: "900" },
   eyeBtn: { marginLeft: 12, opacity: 0.7 },
-
   cardActionContainer: { flexDirection: "row", gap: 10 },
   cardActionCircle: {
     width: 42,
@@ -549,13 +615,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
   whiteCard: {
     backgroundColor: "#FFF",
     marginHorizontal: 20,
     borderRadius: 28,
     padding: 18,
     elevation: 2,
+    ...Platform.select({
+      web: { boxShadow: "0px 4px 10px rgba(0,0,0,0.05)" },
+    }),
   },
   actionGrid: {
     flexDirection: "row",
@@ -577,7 +645,6 @@ const styles = StyleSheet.create({
     color: "#475569",
     textAlign: "center",
   },
-
   promoBanner: {
     backgroundColor: "#002D72",
     margin: 20,
@@ -604,7 +671,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   joinText: { color: "#FFF", fontSize: 11, fontWeight: "900", marginRight: 4 },
-
   activitySection: { paddingHorizontal: 20, paddingBottom: 20 },
   sectionHeader: {
     flexDirection: "row",
@@ -615,7 +681,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 14,
     fontWeight: "900",
-    color: "#64748B",
+    color: "#002D72",
     letterSpacing: 0.5,
   },
   viewAll: { fontSize: 13, color: "#3B82F6", fontWeight: "800" },
@@ -650,7 +716,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: 1,
   },
-
   bottomTab: {
     position: "absolute",
     bottom: 0,
@@ -664,6 +729,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 30,
     paddingBottom: 15,
     elevation: 25,
+    zIndex: 10,
   },
   tabItem: { alignItems: "center" },
   tabText: { fontSize: 10, fontWeight: "900", color: "#94A3B8", marginTop: 5 },

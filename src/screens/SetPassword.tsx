@@ -88,7 +88,7 @@ const SetPassword = ({ navigation }: any) => {
     setIsLoading(true);
     try {
       const response = await fetch(
-        "https://unhastened-monopolistically-shirlee.ngrok-free.dev/auth/reset-password",
+        "https://mobile-banking-app.onrender.com/auth/reset-password",
         {
           method: "POST",
           headers: {

@@ -1,7 +1,6 @@
 import { authStorage } from "./authStorage";
 
-export const BASE_URL =
-  "https://unhastened-monopolistically-shirlee.ngrok-free.dev";
+export const BASE_URL = "https://mobile-banking-app.onrender.com";
 
 export const apiClient = async (
   endpoint: string,

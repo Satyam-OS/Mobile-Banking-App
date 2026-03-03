@@ -30,6 +30,9 @@ const Login = ({ navigation }: any) => {
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
+  // Updated validation state to hold specific error messages
+  const [errors, setErrors] = useState({ mobile: "", password: "" });
+
   const [formData, setFormData] = useState({
     mobile: "",
     password: "",
@@ -39,10 +42,37 @@ const Login = ({ navigation }: any) => {
     const cleaned = text.replace(/[^0-9]/g, "");
     if (cleaned.length <= 10) {
       setFormData({ ...formData, mobile: cleaned });
+      // Clear error as user types
+      if (errors.mobile) setErrors({ ...errors, mobile: "" });
     }
   };
 
+  const handlePasswordChange = (text: string) => {
+    setFormData({ ...formData, password: text });
+    // Clear error as user types
+    if (errors.password) setErrors({ ...errors, password: "" });
+  };
+
   const handleSubmit = async () => {
+    let mobileError = "";
+    let passwordError = "";
+
+    // Validation Logic
+    if (formData.mobile.length === 0) {
+      mobileError = "Mobile number is required";
+    } else if (formData.mobile.length !== 10) {
+      mobileError = "Enter a valid 10-digit number";
+    }
+
+    if (formData.password.length === 0) {
+      passwordError = "Password is required";
+    }
+
+    if (mobileError || passwordError) {
+      setErrors({ mobile: mobileError, password: passwordError });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await authService.login({
@@ -56,7 +86,11 @@ const Login = ({ navigation }: any) => {
         navigation.replace("Dashboard");
       }
     } catch (e: any) {
-      Alert.alert("Login Failed", e.message);
+      // Handle Incorrect Password/Credentials from API
+      setErrors({
+        mobile: "",
+        password: "Incorrect password",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -80,7 +114,7 @@ const Login = ({ navigation }: any) => {
                 <ShieldCheck size={32} color="#001F3F" strokeWidth={2.5} />
               </View>
             </View>
-            <Text style={styles.brandName}>NexusBank</Text>
+            <Text style={styles.brandName}>Nexus Bank</Text>
             <View style={styles.brandBadge}>
               <Text style={styles.brandSub}>INSTITUTIONAL GRADE SECURITY</Text>
             </View>
@@ -94,12 +128,30 @@ const Login = ({ navigation }: any) => {
               </Text>
             </View>
 
+            {/* Mobile Input Group */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>REGISTERED MOBILE NUMBER</Text>
-              <View style={styles.inputWrapper}>
+              <View style={styles.labelRow}>
+                <Text
+                  style={[
+                    styles.label,
+                    !!errors.mobile && { color: "#EF4444" },
+                  ]}
+                >
+                  REGISTERED MOBILE NUMBER {!!errors.mobile && "*"}
+                </Text>
+                {!!errors.mobile && (
+                  <Text style={styles.errorTextInline}>{errors.mobile}</Text>
+                )}
+              </View>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  !!errors.mobile && { borderColor: "#EF4444" },
+                ]}
+              >
                 <Smartphone
                   size={20}
-                  color="#001F3F"
+                  color={!!errors.mobile ? "#EF4444" : "#001F3F"}
                   style={styles.inputIcon}
                 />
                 <TextInput
@@ -114,19 +166,39 @@ const Login = ({ navigation }: any) => {
               </View>
             </View>
 
+            {/* Password Input Group */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>ACCOUNT PASSWORD</Text>
-              <View style={styles.inputWrapper}>
-                <Lock size={20} color="#0EA5E9" style={styles.inputIcon} />
+              <View style={styles.labelRow}>
+                <Text
+                  style={[
+                    styles.label,
+                    !!errors.password && { color: "#EF4444" },
+                  ]}
+                >
+                  ACCOUNT PASSWORD {!!errors.password && "*"}
+                </Text>
+                {!!errors.password && (
+                  <Text style={styles.errorTextInline}>{errors.password}</Text>
+                )}
+              </View>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  !!errors.password && { borderColor: "#EF4444" },
+                ]}
+              >
+                <Lock
+                  size={20}
+                  color={!!errors.password ? "#EF4444" : "#0EA5E9"}
+                  style={styles.inputIcon}
+                />
                 <TextInput
                   style={styles.input}
                   placeholder="••••••••"
                   placeholderTextColor="#94A3B8"
                   secureTextEntry={!showPassword}
                   value={formData.password}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, password: text })
-                  }
+                  onChangeText={handlePasswordChange}
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
@@ -158,7 +230,9 @@ const Login = ({ navigation }: any) => {
               </TouchableOpacity>
 
               <View style={styles.rightActionGroup}>
-                <TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("SetPassword")}
+                >
                   <Text style={styles.forgotText}>Forgot Password?</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -309,12 +383,22 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   inputGroup: { marginBottom: 20 },
+  labelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
   label: {
     fontSize: 11,
     fontWeight: "800",
     color: "#64748B",
-    marginBottom: 10,
     letterSpacing: 1,
+  },
+  errorTextInline: {
+    fontSize: 11,
+    color: "#EF4444",
+    fontWeight: "700",
   },
   inputWrapper: {
     flexDirection: "row",
