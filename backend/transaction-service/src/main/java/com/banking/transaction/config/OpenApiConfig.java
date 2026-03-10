@@ -1,4 +1,4 @@
-package com.example.bank.auth_service.Config;
+package com.banking.transaction.config;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
@@ -10,8 +10,8 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @OpenAPIDefinition(
-        info = @Info(title = "Bank Auth Service API", version = "1.0"),
-        servers = @Server(url = "http://localhost:8080/auth", description = "Via API Gateway"),
+        info = @Info(title = "Transaction Service API", version = "1.0", description = "API for managing bank transactions"),
+        servers = @Server(url = "http://localhost:8080/transaction", description = "Via API Gateway"),
         security = @SecurityRequirement(name = "bearerAuth")
 )
 @SecurityScheme(

@@ -22,20 +22,22 @@ public class AuthService {
         User user = userRepository.findByMobile(req.getMobile())
                 .orElseThrow(() -> new RuntimeException("Invalid credentials"));
 
-        if (!user.isActive())
-            throw new RuntimeException("Account inactive");
+        if (!user.isActive()) {
+            throw new RuntimeException("Account is inactive. Please contact support.");
+        }
 
-        if (user.isForcePasswordReset())
-            throw new RuntimeException("PASSWORD_RESET_REQUIRED");
-
-        if (!passwordEncoder.matches(req.getPassword(), user.getPassword()))
+        if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
             throw new RuntimeException("Invalid credentials");
+        }
 
+        // Generate token regardless of forcePasswordReset
+        // The flag is included in the response so the frontend can redirect to reset-password page
         String token = jwtUtil.generateToken(
+                user.getId().toString(),   // UUID → JWT sub
                 user.getCustomerId(),
-                String.valueOf(user.getRole())
+                user.getRole().name()
         );
 
-        return new LoginResponse(token, user.getRole().name(), user.getCustomerId());
+        return new LoginResponse(token, user.getRole().name(), user.getCustomerId(), user.isForcePasswordReset());
     }
 }

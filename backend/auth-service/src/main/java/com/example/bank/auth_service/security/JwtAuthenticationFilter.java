@@ -1,7 +1,5 @@
 package com.example.bank.auth_service.security;
 
-import com.example.bank.auth_service.entity.User;
-import com.example.bank.auth_service.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,14 +11,15 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+
 import java.io.IOException;
 import java.util.List;
+
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
-    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(
@@ -29,14 +28,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        String path = request.getServletPath();
+        String path = request.getRequestURI();
 
-        if (
-                path.startsWith("/auth")
-                        || path.startsWith("/otp")
-                        || path.startsWith("/swagger-ui")
-                        || path.startsWith("/v3/api-docs")
-        ) {
+        // Public paths — no token needed
+        if (path.startsWith("/auth")
+                || path.startsWith("/otp")
+                || path.startsWith("/actuator")
+                || path.startsWith("/swagger-ui")
+                || path.startsWith("/v3/api-docs")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -50,24 +49,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             String token = authHeader.substring(7);
-            String subject = jwtUtil.extractCustomerId(token);
+            // subject = mobile (KYC token) OR UUID (login token)
+            String subject = jwtUtil.extractSubject(token);
             String role = jwtUtil.extractRole(token);
-            if ("USER".equals(role) && !path.startsWith("/kyc")) {
-                userRepository.findByMobile(subject)
-                        .filter(User::isActive)
-                        .orElseThrow(() -> new RuntimeException("User inactive"));
-            }
 
             List<GrantedAuthority> authorities =
                     List.of(new SimpleGrantedAuthority("ROLE_" + role));
 
-
             UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(
-                            subject,
-                            null,
-                            authorities
-                    );
+                    new UsernamePasswordAuthenticationToken(subject, null, authorities);
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
 

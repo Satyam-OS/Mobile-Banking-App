@@ -1,9 +1,9 @@
 server:
-  port: ${PORT:8081}
+  port: ${PORT:8083}
 
 spring:
   application:
-    name: auth-service
+    name: transaction-service
 
   datasource:
     url: ${DATABASE_URL}
@@ -28,10 +28,6 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
-account:
-  service:
-    url: ${ACCOUNT_SERVICE_URL:http://localhost:8082}
-
 jwt:
   secret: ${JWT_SECRET:BANKING_APP_SECRET_KEY_1234567890}
 
@@ -39,9 +35,4 @@ management:
   endpoints:
     web:
       exposure:
-        include: "*"
-  endpoint:
-    health:
-      show-details: always
-  security:
-    enabled: false
+        include: health,info

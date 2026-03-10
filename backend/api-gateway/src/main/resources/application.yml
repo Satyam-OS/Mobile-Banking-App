@@ -1,0 +1,97 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      routes:
+        # ─── Swagger API-Docs (no JWT) ──────────────────────────────────────────
+        - id: auth-api-docs
+          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/auth/v3/api-docs/**
+          filters:
+            - RewritePath=/auth/v3/api-docs(?<segment>.*), /v3/api-docs${segment}
+
+        - id: account-api-docs
+          uri: ${ACCOUNT_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/account/v3/api-docs/**
+          filters:
+            - RewritePath=/account/v3/api-docs(?<segment>.*), /v3/api-docs${segment}
+
+        - id: transaction-api-docs
+          uri: ${TRANSACTION_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/transaction/v3/api-docs/**
+          filters:
+            - RewritePath=/transaction/v3/api-docs(?<segment>.*), /v3/api-docs${segment}
+
+        # ─── Block internal endpoints ───────────────────────────────────────────
+        - id: block-account-internal
+          uri: no://op
+          predicates:
+            - Path=/account/internal/**
+          filters:
+            - SetStatus=403
+
+        # ─── Auth Service ───────────────────────────────────────────────────────
+        - id: auth-service
+          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/auth/**
+          filters:
+            - StripPrefix=1
+
+        # ─── Account Service (JWT protected) ───────────────────────────────────
+        - id: account-service
+          uri: ${ACCOUNT_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/account/**
+          filters:
+            - StripPrefix=1
+            - JwtAuthenticationFilter
+
+        # ─── Transaction Service (JWT protected) ───────────────────────────────
+        - id: transaction-service
+          uri: ${TRANSACTION_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/transaction/**
+          filters:
+            - StripPrefix=1
+            - JwtAuthenticationFilter
+
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods: [GET, POST, PUT, DELETE, OPTIONS, PATCH]
+            allowedHeaders: "*"
+            exposedHeaders: "*"
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: Auth Service
+        url: /auth/v3/api-docs
+      - name: Account Service
+        url: /account/v3/api-docs
+      - name: Transaction Service
+        url: /transaction/v3/api-docs
+    disable-swagger-default-url: true
+    config-url: /v3/api-docs/swagger-config
+  api-docs:
+    enabled: true
+
+jwt:
+  secret: ${JWT_SECRET:BANKING_APP_SECRET_KEY_1234567890}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

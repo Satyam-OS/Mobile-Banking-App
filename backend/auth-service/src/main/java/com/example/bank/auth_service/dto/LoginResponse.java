@@ -6,8 +6,8 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class LoginResponse {
-
     private String token;
     private String role;
     private String customerId;
+    private boolean forcePasswordReset;  // true = redirect to reset-password page
 }

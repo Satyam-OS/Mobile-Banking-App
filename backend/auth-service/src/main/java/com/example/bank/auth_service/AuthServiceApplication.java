@@ -9,7 +9,6 @@ public class AuthServiceApplication {
 	public static void main(String[] args) {
         System.out.println("Starting Auth Service Application");
 
-
         SpringApplication.run(AuthServiceApplication.class, args);
 	}
 

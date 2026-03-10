@@ -19,11 +19,9 @@ public class OtpController {
 
     @PostMapping("/generate")
     public ResponseEntity<?> generateOtp(@RequestBody OtpRequest req) {
-
         otpService.generateAndSendOtp(req.getMobile());
-
         return ResponseEntity.ok(
-                java.util.Map.of("message", "OTP generated successfully")
+                Map.of("message", "OTP generated successfully")
         );
     }
 
@@ -33,15 +31,15 @@ public class OtpController {
     ) {
         otpService.verifyOtp(req.getMobile(), req.getOtp());
 
-        String token = jwtUtil.generateToken(
-                req.getMobile(),
-                "USER"
-        );
+        // OTP verify = identity proof only (no User exists yet)
+        // Token uses mobile as subject — only valid for KYC submission
+        String token = jwtUtil.generateKycToken(req.getMobile());
 
         return ResponseEntity.ok(
                 Map.of(
-                        "message", "OTP verified successfully",
+                        "message", "OTP verified. Please submit your KYC to complete registration.",
                         "token", token
                 )
         );
-    }}
+    }
+}

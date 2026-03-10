@@ -29,6 +29,7 @@ public class SecurityConfig {
                         sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/actuator/**").permitAll()
 
                         // PUBLIC
                         .requestMatchers(
@@ -43,6 +44,8 @@ public class SecurityConfig {
 
                         // ADMIN
                         .requestMatchers("/admin/**").hasRole("ADMIN")
+
+
 
                         .anyRequest().authenticated()
                 )
