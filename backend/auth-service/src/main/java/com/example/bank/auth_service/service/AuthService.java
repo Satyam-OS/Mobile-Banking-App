@@ -30,14 +30,20 @@ public class AuthService {
             throw new RuntimeException("Invalid credentials");
         }
 
-        // Generate token regardless of forcePasswordReset
-        // The flag is included in the response so the frontend can redirect to reset-password page
         String token = jwtUtil.generateToken(
-                user.getId().toString(),   // UUID → JWT sub
+                user.getId().toString(),
                 user.getCustomerId(),
                 user.getRole().name()
         );
 
-        return new LoginResponse(token, user.getRole().name(), user.getCustomerId(), user.isForcePasswordReset());
+        // ✅ FIX: Now returns firstName and email so frontend shows real name
+        return new LoginResponse(
+                token,
+                user.getRole().name(),
+                user.getCustomerId(),
+                user.isForcePasswordReset(),
+                user.getFirstName() != null ? user.getFirstName() : "",
+                user.getEmail() != null ? user.getEmail() : ""
+        );
     }
 }

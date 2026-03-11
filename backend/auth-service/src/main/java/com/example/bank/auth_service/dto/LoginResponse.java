@@ -9,5 +9,8 @@ public class LoginResponse {
     private String token;
     private String role;
     private String customerId;
-    private boolean forcePasswordReset;  // true = redirect to reset-password page
+    private boolean forcePasswordReset;
+    //  FIX: Added name fields so frontend can display user name instead of mobile number
+    private String firstName;
+    private String email;
 }

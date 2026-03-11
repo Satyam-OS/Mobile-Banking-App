@@ -11,7 +11,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @OpenAPIDefinition(
         info = @Info(title = "Bank Auth Service API", version = "1.0"),
-        servers = @Server(url = "http://localhost:8080/auth", description = "Via API Gateway"),
+        // FIX: Was "http://localhost:8080/auth" — caused Swagger "Failed to fetch" error
+        // because browser would try to POST to localhost instead of the deployed gateway
+        servers = @Server(url = "https://banking-app-1ap8.onrender.com", description = "API Gateway"),
         security = @SecurityRequirement(name = "bearerAuth")
 )
 @SecurityScheme(

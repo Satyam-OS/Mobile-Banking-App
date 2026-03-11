@@ -41,18 +41,18 @@ public class AdminKycService {
             throw new RuntimeException("KYC is not in SUBMITTED state. Current state: " + kyc.getStatus());
         }
 
-        // Mark KYC approved
         kyc.setStatus(KycStatus.APPROVED);
         kyc.setReviewedAt(LocalDateTime.now());
         kycRepository.save(kyc);
 
-        // Prevent duplicate user
         if (userRepository.findByMobile(mobile).isPresent()) {
             throw new RuntimeException("User already exists for mobile: " + mobile);
         }
 
-        // Create user — temp password, force reset on first login
         String customerId = "CUST" + System.currentTimeMillis();
+
+        // ✅ FIX: Copy firstName and email from KYC application into the User record
+        // This is what allows the login response and dashboard to show the real name
         User user = User.builder()
                 .mobile(mobile)
                 .customerId(customerId)
@@ -61,23 +61,33 @@ public class AdminKycService {
                 .active(true)
                 .forcePasswordReset(true)
                 .firstLogin(true)
+                .firstName(kyc.getFullName())   // ✅ FIX: was missing before
+                .email(kyc.getEmail())           // ✅ FIX: was missing before
                 .build();
 
         User savedUser = userRepository.save(user);
 
-        // Auto-create bank account in account-service
+        // ✅ FIX: No longer silent — throws clearly if account creation fails
+        // Admin will see the error and can retry the approval
         try {
             createAccountForUser(savedUser.getId());
+            System.out.println("✅ USER + ACCOUNT CREATED | Mobile: " + mobile
+                    + " | CustomerId: " + customerId
+                    + " | Name: " + kyc.getFullName());
         } catch (Exception e) {
-            System.err.println("WARNING: Failed to auto-create account for user " + savedUser.getId() + ": " + e.getMessage());
+            System.err.println("❌ ACCOUNT CREATION FAILED for user " + savedUser.getId()
+                    + " (" + mobile + "): " + e.getMessage());
+            // Re-throw so admin sees error and can retry
+            throw new RuntimeException(
+                    "User approved but bank account creation failed. Please retry approval or create account manually. Error: "
+                            + e.getMessage(), e);
         }
 
-        System.out.println("✅ USER CREATED | Mobile: " + mobile + " | CustomerId: " + customerId + " | Temp password: TEMP1234");
+        System.out.println("✅ KYC APPROVED | Mobile: " + mobile + " | Temp password: TEMP1234");
     }
 
     @Transactional
     public void rejectKyc(String mobile, String reason) {
-
         KycApplication kyc = kycRepository.findByMobile(mobile)
                 .orElseThrow(() -> new RuntimeException("KYC not found for mobile: " + mobile));
 
@@ -102,14 +112,12 @@ public class AdminKycService {
         Map<String, Object> body = new HashMap<>();
         body.put("userId", userId.toString());
 
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
 
-        ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
+        ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
 
-        if (response.getStatusCode().is2xxSuccessful()) {
-            System.out.println("✅ Account created for user: " + userId);
-        } else {
-            throw new RuntimeException("Account creation failed with status: " + response.getStatusCode());
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            throw new RuntimeException("Account service returned: " + response.getStatusCode());
         }
     }
 }

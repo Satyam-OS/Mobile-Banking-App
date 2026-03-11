@@ -11,7 +11,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
 public class User {
 
     @Id
@@ -26,6 +25,13 @@ public class User {
 
     private String password;
 
+    //  FIX: Added name fields — previously missing, caused "Hello 7878787878" bug
+    @Column
+    private String firstName;
+
+    @Column
+    private String email;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
@@ -35,7 +41,6 @@ public class User {
 
     @Column(nullable = false)
     private boolean firstLogin;
-
 
     @Column(nullable = false)
     private boolean forcePasswordReset;

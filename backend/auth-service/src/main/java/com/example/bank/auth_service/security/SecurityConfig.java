@@ -31,7 +31,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**").permitAll()
 
-                        // PUBLIC
+                        // PUBLIC — login, OTP, password reset, swagger
                         .requestMatchers(
                                 "/auth/**",
                                 "/otp/**",
@@ -39,13 +39,15 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"
                         ).permitAll()
 
-                        // USER
+                        // FIX: /user/** requires authentication (JWT injected by gateway)
+                        // The X-User-Id header comes from the gateway's JwtAuthenticationFilter
+                        .requestMatchers("/user/**").authenticated()
+
+                        // KYC submission requires USER role
                         .requestMatchers("/kyc/**").hasRole("USER")
 
-                        // ADMIN
+                        // Admin endpoints require ADMIN role
                         .requestMatchers("/admin/**").hasRole("ADMIN")
-
-
 
                         .anyRequest().authenticated()
                 )

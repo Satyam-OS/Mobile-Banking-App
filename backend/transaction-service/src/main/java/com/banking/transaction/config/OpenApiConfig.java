@@ -11,7 +11,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @OpenAPIDefinition(
         info = @Info(title = "Transaction Service API", version = "1.0", description = "API for managing bank transactions"),
-        servers = @Server(url = "http://localhost:8080/transaction", description = "Via API Gateway"),
+        // ✅ FIX: Was "http://localhost:8080/transaction" — caused Swagger "Failed to fetch"
+        servers = @Server(url = "https://banking-app-1ap8.onrender.com", description = "API Gateway"),
         security = @SecurityRequirement(name = "bearerAuth")
 )
 @SecurityScheme(

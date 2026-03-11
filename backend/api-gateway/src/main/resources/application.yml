@@ -8,6 +8,7 @@ spring:
   cloud:
     gateway:
       routes:
+        # ─── Swagger / API Docs (no JWT needed) ──────────────────────────────
         - id: auth-api-docs
           uri: ${AUTH_SERVICE_URL:http://localhost:8081}
           predicates:
@@ -29,6 +30,7 @@ spring:
           filters:
             - RewritePath=/transaction/v3/api-docs(?<segment>.*), /v3/api-docs${segment}
 
+        # ─── Security: block direct internal account creation ─────────────────
         - id: block-account-internal
           uri: no://op
           predicates:
@@ -36,13 +38,30 @@ spring:
           filters:
             - SetStatus=403
 
+        # ─── Auth Service: protected user routes (JWT REQUIRED) ──────────────
+        # ✅ FIX: /auth/user/** needs JWT so UserController gets the X-User-Id header.
+        # This route MUST be declared BEFORE the general /auth/** route below
+        # because Spring Cloud Gateway matches routes in declaration order.
+        - id: auth-user-protected
+          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/auth/user/**
+          filters:
+            - StripPrefix=1
+            - JwtAuthenticationFilter
+
+        # ─── Auth Service: public routes (NO JWT) ────────────────────────────
+        # Handles: /auth/auth/login, /auth/otp/*, /auth/kyc/*, /auth/admin/*,
+        #          /auth/auth/reset-password
         - id: auth-service
           uri: ${AUTH_SERVICE_URL:http://localhost:8081}
           predicates:
             - Path=/auth/**
           filters:
             - StripPrefix=1
+            # No JwtAuthenticationFilter — login/OTP/KYC must be public
 
+        # ─── Account Service (JWT REQUIRED) ──────────────────────────────────
         - id: account-service
           uri: ${ACCOUNT_SERVICE_URL:http://localhost:8082}
           predicates:
@@ -51,6 +70,7 @@ spring:
             - StripPrefix=1
             - JwtAuthenticationFilter
 
+        # ─── Transaction Service (JWT REQUIRED) ──────────────────────────────
         - id: transaction-service
           uri: ${TRANSACTION_SERVICE_URL:http://localhost:8083}
           predicates:
@@ -59,6 +79,7 @@ spring:
             - StripPrefix=1
             - JwtAuthenticationFilter
 
+# ─── Swagger UI aggregation ───────────────────────────────────────────────────
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -74,9 +95,11 @@ springdoc:
   api-docs:
     enabled: true
 
+# ─── JWT secret (must match all services) ────────────────────────────────────
 jwt:
   secret: ${JWT_SECRET:BANKING_APP_SECRET_KEY_1234567890}
 
+# ─── Actuator ────────────────────────────────────────────────────────────────
 management:
   endpoints:
     web:

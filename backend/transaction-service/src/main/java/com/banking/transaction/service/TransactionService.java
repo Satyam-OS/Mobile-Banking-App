@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.security.SecureRandom;
 import java.util.UUID;
 
 @Service
@@ -24,12 +26,12 @@ public class TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
+    private static final SecureRandom random = new SecureRandom();
 
     @Transactional(isolation = Isolation.SERIALIZABLE, rollbackFor = Exception.class)
     public TransactionResponse transfer(UUID userId, TransferRequest request) {
         log.info("Starting transfer for user {} to account {}", userId, request.getToAccountNumber());
 
-        // Find sender account by UUID userId
         Account fromAccount = accountRepository.findByUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Sender account not found"));
 
@@ -77,13 +79,23 @@ public class TransactionService {
         transaction.setAmount(request.getAmount());
         transaction.setType(Transaction.TransactionType.TRANSFER);
         transaction.setStatus(Transaction.TransactionStatus.COMPLETED);
-        transaction.setDescription(request.getDescription());
+
+        // ✅ FIX: Set a human-readable description so Transactions screen shows meaningful text
+        // Uses the note/description from request if provided, else generates one
+        String desc = request.getDescription();
+        transaction.setDescription(
+                (desc != null && !desc.isBlank())
+                        ? desc
+                        : "Transfer to " + receiver.getAccountNumber()
+        );
+
         transaction.setReferenceNumber(generateReferenceNumber());
 
         Transaction saved = transactionRepository.save(transaction);
 
-        log.info("Transfer completed: {} transferred {} from {} to {}",
-                userId, request.getAmount(), sender.getAccountNumber(), receiver.getAccountNumber());
+        log.info("Transfer completed: ref={} amount={} from={} to={}",
+                saved.getReferenceNumber(), request.getAmount(),
+                sender.getAccountNumber(), receiver.getAccountNumber());
 
         return TransactionResponse.fromEntity(saved);
     }
@@ -101,13 +113,13 @@ public class TransactionService {
                 .orElseThrow(() -> new IllegalArgumentException("Transaction not found"));
 
         if (!transaction.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("Unauthorized access to transaction");
+            throw new IllegalArgumentException("Access denied");
         }
 
         return TransactionResponse.fromEntity(transaction);
     }
 
     private String generateReferenceNumber() {
-        return "TXN" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
+        return "TXN" + System.currentTimeMillis() + String.format("%04d", random.nextInt(10000));
     }
 }
