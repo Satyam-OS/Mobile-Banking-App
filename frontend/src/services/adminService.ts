@@ -1,45 +1,25 @@
+/**
+ * Admin Service — via API Gateway
+ *
+ * GET  /auth/admin/kyc/pending
+ * POST /auth/admin/kyc/approve/{mobile}
+ * POST /auth/admin/kyc/reject/{mobile}
+ * GET  /auth/admin/dashboard
+ */
 import { apiClient } from "./api";
-
 import { authStorage } from "./authStorage";
 
 export const adminService = {
   getPendingKyc: async () => {
     const token = await authStorage.getAdminToken();
-
     if (!token) throw new Error("Admin not logged in");
-
-    return apiClient("/admin/kyc/pending", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    return apiClient("/auth/admin/kyc/pending", { method: "GET" });
   },
-
-  approveKyc: async (mobile: string) => {
-    const token = await authStorage.getAdminToken();
-
-    return apiClient(`/admin/kyc/approve/${mobile}`, {
-      method: "POST",
-
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+  approveKyc: async (mobile: string) =>
+    apiClient(`/auth/admin/kyc/approve/${mobile}`, { method: "POST" }),
+  rejectKyc: async (mobile: string, reason?: string) => {
+    const qs = reason ? `?reason=${encodeURIComponent(reason)}` : "";
+    return apiClient(`/auth/admin/kyc/reject/${mobile}${qs}`, { method: "POST" });
   },
-
-  rejectKyc: async (mobile: string, reason: string) => {
-    const token = await authStorage.getAdminToken();
-
-    return apiClient(
-      `/admin/kyc/reject/${mobile}?reason=${encodeURIComponent(reason)}`,
-
-      {
-        method: "POST",
-
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    );
-  },
+  getDashboard: async () => apiClient("/auth/admin/dashboard", { method: "GET" }),
 };

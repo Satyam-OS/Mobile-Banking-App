@@ -1,54 +1,78 @@
+/**
+ * NEXUS BANK — API CLIENT
+ * Single gateway: https://banking-app-1ap8.onrender.com
+ * All services route through this gateway.
+ */
+
 import { authStorage } from "./authStorage";
 
-export const BASE_URL =
-  "https://mobile-banking-app.onrender.com";
+export const BASE_URL = "https://banking-app-1ap8.onrender.com";
 
 export const apiClient = async (
   endpoint: string,
   options: RequestInit = {},
-) => {
+  requiresAuth = true,
+): Promise<any> => {
   const url = `${BASE_URL}${endpoint}`;
 
-  // 1. Get the correct token
-  const token = endpoint.startsWith("/admin")
-    ? await authStorage.getAdminToken()
-    : await authStorage.getUserToken();
+  const isAdmin = endpoint.includes("/admin/");
+  const token = requiresAuth
+    ? isAdmin
+      ? await authStorage.getAdminToken()
+      : await authStorage.getUserToken()
+    : null;
 
-  // 2. Setup Default Headers (including the Ngrok fix)
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     Accept: "application/json",
-    "ngrok-skip-browser-warning": "true", // Skips the Ngrok warning page
   };
+  if (token) headers.Authorization = `Bearer ${token}`;
 
-  // 3. Add Authorization if token exists
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
+  // Debug logging
+  const bodyPreview = options.body
+    ? (() => { try { return JSON.parse(options.body as string); } catch { return options.body; } })()
+    : undefined;
+  console.log(`[API] ${options.method || "GET"} ${endpoint}`, bodyPreview ?? "");
 
-  console.log("API Request:", { url, options, headers });
-
-  // 4. Properly merge all headers
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...headers, // Our default headers + token
-      ...options.headers, // Any specific headers passed from the service
-    },
-  });
-
-  // Handle unauthorized/forbidden before trying to parse
-  if (response.status === 401 || response.status === 403) {
-    throw new Error(`Unauthorized or Forbidden: ${response.status}`);
-  }
-
-  const text = await response.text();
-
-  // Handle non-JSON responses (like "KYC SUBMITTED") gracefully
   try {
-    return text ? JSON.parse(text) : {};
-  } catch (e) {
-    // If the backend sent plain text, return it as an object
-    return { message: text, status: "SUCCESS" };
+    const response = await fetch(url, {
+      ...options,
+      headers: { ...headers, ...(options.headers as Record<string, string> ?? {}) },
+    });
+
+    console.log(`[API] ← ${response.status} ${endpoint}`);
+
+    if (response.status === 401 || response.status === 403) {
+      await authStorage.clearAll();
+      throw new Error("UNAUTHORIZED");
+    }
+    if (response.status === 404) return null;
+    if (response.status >= 500) {
+      let detail = "SERVER_ERROR";
+      try {
+        const t = await response.text();
+        const j = JSON.parse(t);
+        detail = j.message || j.error || "SERVER_ERROR";
+        console.error(`[API] 500 detail (${endpoint}):`, t.slice(0, 400));
+      } catch { console.error(`[API] 500 on ${endpoint}`); }
+      throw new Error(detail);
+    }
+
+    const text = await response.text();
+    if (!text) return {};
+    try {
+      const json = JSON.parse(text);
+      if (!response.ok && (json.message || json.error)) throw new Error(json.message || json.error);
+      return json;
+    } catch (parseErr: any) {
+      if (parseErr.message && !parseErr.message.includes("JSON")) throw parseErr;
+      if (!response.ok) throw new Error(text || "Request failed");
+      return { message: text, status: "SUCCESS" };
+    }
+  } catch (err: any) {
+    if (err.name === "TypeError" || err.message?.includes("Failed to fetch") || err.message?.includes("Network request failed")) {
+      throw new Error("NETWORK_ERROR");
+    }
+    throw err;
   }
 };

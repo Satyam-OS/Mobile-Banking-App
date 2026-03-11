@@ -23,6 +23,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { authService } from "../services/authService";
 
 const SetPassword = ({ navigation }: any) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -87,59 +88,31 @@ const SetPassword = ({ navigation }: any) => {
 
     setIsLoading(true);
     try {
-      const response = await fetch(
-        "https://mobile-banking-app.onrender.com/auth/reset-password",
-        {
-          method: "POST",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-            "ngrok-skip-browser-warning": "69420",
-          },
-          body: JSON.stringify({
-            mobile: formData.mobile,
-            newPassword: formData.newPassword,
-            confirmPassword: formData.confirmPassword,
-          }),
-        },
+      await authService.resetPassword(
+        formData.mobile,
+        formData.newPassword,
+        formData.confirmPassword,
       );
 
-      // Read as text first to avoid crash if backend sends non-JSON
-      const responseText = await response.text();
-      let result: any = {};
-      try {
-        result = JSON.parse(responseText);
-      } catch (e) {
-        result = { message: responseText };
-      }
-
-      if (response.ok) {
-        setStatusMessage({
-          type: "success",
-          text: "Credentials updated. Redirecting to secure login...",
-        });
-        setTimeout(() => {
-          setIsLoading(false);
-          navigation.reset({
-            index: 0,
-            routes: [{ name: "Login" }],
-          });
-        }, 2500);
-      } else {
+      setStatusMessage({
+        type: "success",
+        text: "Credentials updated. Redirecting to secure login...",
+      });
+      setTimeout(() => {
         setIsLoading(false);
+        navigation.reset({ index: 0, routes: [{ name: "Login" }] });
+      }, 2500);
+    } catch (error: any) {
+      setIsLoading(false);
+      const msg = error.message || "";
+      if (msg === "NETWORK_ERROR") {
+        setStatusMessage({ type: "error", text: "Network Error: Unable to reach secure servers." });
+       } else {
         setStatusMessage({
           type: "error",
-          text:
-            result.message ||
-            "Authorization failed: Invalid mobile or session expired.",
+          text: msg || "Authorization failed: Invalid mobile or session expired.",
         });
       }
-    } catch (error) {
-      setIsLoading(false);
-      setStatusMessage({
-        type: "error",
-        text: "Network Error: Unable to reach secure servers.",
-      });
     }
   };
 

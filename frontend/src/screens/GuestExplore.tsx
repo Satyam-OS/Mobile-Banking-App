@@ -1,31 +1,31 @@
 import {
-  ArrowLeft,
-  ArrowRight,
-  Building2,
-  CheckCircle2,
-  CreditCard,
-  Phone,
-  PiggyBank,
-  ShieldCheck,
-  Sparkles,
-  TrendingUp,
-  Wallet,
-  X,
+    ArrowLeft,
+    ArrowRight,
+    Building2,
+    CheckCircle2,
+    CreditCard,
+    Phone,
+    PiggyBank,
+    ShieldCheck,
+    Sparkles,
+    TrendingUp,
+    Wallet,
+    X,
 } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Alert,
-  Animated,
-  Dimensions,
-  Modal,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    Animated,
+    Dimensions,
+    Modal,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 // Integrated your backend service
 import { authService } from "../services/authService";
@@ -154,23 +154,31 @@ export default function GuestExplore({ navigation }: any) {
   }, []);
 
   const sendOtp = async () => {
+    if (loading) return; // debounce - prevent double-tap
     if (mobile.length !== 10) {
       Alert.alert("Invalid Number", "Enter a valid 10-digit mobile number");
       return;
     }
 
+    setLoading(true);
     try {
-      setLoading(true);
-      // Calls POST https://mobile-banking-app.onrender.com/otp/generate
       await authService.generateOtp(mobile);
-
       setShowModal(false);
       navigation.navigate("GuestOtp", { mobile });
     } catch (error: any) {
-      Alert.alert(
-        "Error",
-        error.message || "Failed to send OTP. Please check your connection.",
-      );
+      const msg = error.message || "";
+      if (msg === "SERVER_ERROR") {
+        Alert.alert(
+          "OTP Service Unavailable",
+          "The OTP service is currently experiencing issues on our servers. Please try again in a few minutes, or use your registered mobile & password to login directly.",
+          [{ text: "Go to Login", onPress: () => { setShowModal(false); navigation.navigate("Login"); } },
+           { text: "Try Again", style: "cancel" }]
+        );
+      } else if (msg === "NETWORK_ERROR") {
+        Alert.alert("No Connection", "Please check your internet connection and try again.");
+      } else {
+        Alert.alert("Error", msg || "Failed to send OTP. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

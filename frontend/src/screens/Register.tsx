@@ -192,16 +192,45 @@ export default function Register({ navigation }: any) {
     return true;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     setStatusMessage(null);
     if (validateStep()) {
-      if (step < 4) setStep(step + 1);
-      else {
+      if (step < 4) {
+        setStep(step + 1);
+      } else {
         setIsLoading(true);
-        setTimeout(() => {
+        try {
+          // Build KYC payload
+          const kycPayload = {
+            fullName: formData.fullName,
+            mobile: formData.mobile,
+            gender: formData.gender,
+            dob: formData.dob,
+            address: {
+              flatNo: formData.flatNo,
+              building: formData.building,
+              area: formData.area,
+              pincode: formData.pincode,
+              city: formData.city,
+              state: formData.state,
+            },
+          };
+
+          // Import kycService at top if not already
+          const { kycService } = require("../services/kycService");
+          await kycService.submitKyc(kycPayload);
+
           setIsLoading(false);
           setIsPending(true);
-        }, 2000);
+        } catch (err: any) {
+          setIsLoading(false);
+          triggerStatus(
+            "error",
+            err.message === "NETWORK_ERROR"
+              ? "Network error. Please check your connection."
+              : err.message || "Submission failed. Please try again.",
+          );
+        }
       }
     }
   };

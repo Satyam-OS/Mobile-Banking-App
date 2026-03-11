@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   ArrowLeft,
   Bell,
@@ -14,8 +15,9 @@ import {
   Smartphone,
   User,
 } from "lucide-react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+  Alert,
   Dimensions,
   Image,
   SafeAreaView,
@@ -26,31 +28,84 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { authService } from "../services/authService";
+import { accountService } from "../services/accountService";
 
 const { width } = Dimensions.get("window");
 
-// Mock data integration
-const mockUser = {
-  name: "Hritik Pandit",
-  customerId: "NX-882910",
-  phone: "+1 (555) 012-3456",
-  email: "hritik.nexus@premium.com",
-  avatar: null,
-};
-
 export default function Profile({ navigation }: any) {
   const [isEditing, setIsEditing] = useState(false);
+  const [userData, setUserData] = useState({
+    name: "User",
+    customerId: "NX-XXXXXX",
+    phone: "",
+    email: "",
+    avatar: null,
+  });
 
-  // UPDATED: Routes now match your AppNavigator exactly
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        // Load from cache first for instant display
+        const storedName = await AsyncStorage.getItem("user_name");
+        const storedMobile = await AsyncStorage.getItem("user_mobile");
+        const cachedRaw = await AsyncStorage.getItem("user_data");
+        const cached = cachedRaw ? JSON.parse(cachedRaw) : null;
+
+        setUserData({
+          name: storedName || cached?.name || "User",
+          customerId: cached?.customerId ? `NX-${cached.customerId}` : "NX-XXXXXX",
+          phone: storedMobile || cached?.mobile || "",
+          email: cached?.email || "",
+          avatar: null,
+        });
+
+        // Try to get full profile from API
+        const profileData = await accountService.getProfile();
+        if (profileData) {
+          const name = profileData.firstName || profileData.name || profileData.fullName || storedName || "User";
+          const mobile = profileData.mobile || profileData.phone || storedMobile || "";
+          const email = profileData.email || "";
+          const customerId = profileData.customerId || profileData.accountId || cached?.customerId || "";
+          setUserData({ name, customerId: customerId ? `NX-${customerId}` : "NX-XXXXXX", phone: mobile, email, avatar: null });
+          if (name) await AsyncStorage.setItem("user_name", name);
+        }
+      } catch (err) {
+        console.log("Profile fetch error:", err);
+      }
+    };
+    loadProfile();
+  }, []);
+
+  const handleLogout = () => {
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async () => {
+          await authService.logout();
+          navigation.replace("Login");
+        },
+      },
+    ]);
+  };
+
+  // UPDATED: Added 'inUse' logic based on whether a route exists
   const menuItems = [
-    { icon: User, label: "Personal Details", route: "PersonalDetails" },
-    { icon: CreditCard, label: "Linked Accounts", route: "" },
-    { icon: Bell, label: "Notifications", route: "" },
-    { icon: ShieldCheck, label: "Security Settings", route: "" },
-    { icon: Smartphone, label: "Device Management", route: "" },
-    { icon: FileText, label: "Statements", route: "" },
-    { icon: HelpCircle, label: "Help & Support", route: "" },
-    { icon: Settings, label: "App Settings", route: "" },
+    {
+      icon: User,
+      label: "Personal Details",
+      route: "PersonalDetails",
+      inUse: true,
+    },
+    { icon: CreditCard, label: "Linked Accounts", route: "", inUse: false },
+    { icon: Bell, label: "Notifications", route: "", inUse: false },
+    { icon: ShieldCheck, label: "Security Settings", route: "", inUse: false },
+    { icon: Smartphone, label: "Device Management", route: "", inUse: false },
+    { icon: FileText, label: "Statements", route: "", inUse: false },
+    { icon: HelpCircle, label: "Help & Support", route: "", inUse: false },
+    { icon: Settings, label: "App Settings", route: "", inUse: false },
   ];
 
   const getInitials = (name: string) => {
@@ -63,7 +118,7 @@ export default function Profile({ navigation }: any) {
 
   // Helper to handle navigation safely
   const handleNavigation = (route: string) => {
-    if (navigation.navigate) {
+    if (route && navigation.navigate) {
       navigation.navigate(route);
     }
   };
@@ -89,9 +144,11 @@ export default function Profile({ navigation }: any) {
 
             <Text style={styles.headerTitle}>ACCOUNT PROFILE</Text>
 
+            {/* UPDATED: Added opacity to fade the pencil button since it's not in use */}
             <TouchableOpacity
-              style={styles.circleBtn}
+              style={[styles.circleBtn, { opacity: 0.35 }]}
               onPress={() => setIsEditing(!isEditing)}
+              disabled={true}
             >
               <Edit2 size={20} color="#FFF" />
             </TouchableOpacity>
@@ -103,14 +160,14 @@ export default function Profile({ navigation }: any) {
           <View style={styles.profileCard}>
             <View style={styles.avatarContainer}>
               <View style={styles.avatarInner}>
-                {mockUser.avatar ? (
+                {userData.avatar ? (
                   <Image
-                    source={{ uri: mockUser.avatar }}
+                    source={{ uri: userData.avatar }}
                     style={styles.avatarImg}
                   />
                 ) : (
                   <Text style={styles.initialsText}>
-                    {getInitials(mockUser.name)}
+                    {getInitials(userData.name)}
                   </Text>
                 )}
               </View>
@@ -119,9 +176,9 @@ export default function Profile({ navigation }: any) {
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.userName}>{mockUser.name}</Text>
+            <Text style={styles.userName}>{userData.name}</Text>
             <View style={styles.idBadge}>
-              <Text style={styles.idText}>ID: {mockUser.customerId}</Text>
+              <Text style={styles.idText}>ID: {userData.customerId}</Text>
             </View>
 
             {/* Quick Contact Info */}
@@ -129,7 +186,7 @@ export default function Profile({ navigation }: any) {
               <View style={styles.contactItem}>
                 <Smartphone size={14} color="#0EA5E9" />
                 <Text style={styles.contactLabel}>MOBILE</Text>
-                <Text style={styles.contactValue}>{mockUser.phone}</Text>
+                <Text style={styles.contactValue}>{userData.phone || "Not available"}</Text>
               </View>
               <View
                 style={[
@@ -140,7 +197,7 @@ export default function Profile({ navigation }: any) {
                 <Mail size={14} color="#0EA5E9" />
                 <Text style={styles.contactLabel}>EMAIL</Text>
                 <Text style={styles.contactValue} numberOfLines={1}>
-                  {mockUser.email}
+                  {userData.email || "Not available"}
                 </Text>
               </View>
             </View>
@@ -171,8 +228,9 @@ export default function Profile({ navigation }: any) {
           {menuItems.map((item, index) => (
             <TouchableOpacity
               key={index}
-              style={styles.menuItem}
+              style={[styles.menuItem, !item.inUse && { opacity: 0.35 }]}
               onPress={() => handleNavigation(item.route)}
+              disabled={!item.inUse}
             >
               <View style={styles.menuIconBox}>
                 <item.icon size={20} color="#0EA5E9" />
@@ -187,7 +245,7 @@ export default function Profile({ navigation }: any) {
         <View style={styles.logoutWrapper}>
           <TouchableOpacity
             style={styles.logoutBtn}
-            onPress={() => navigation.navigate("Login")}
+            onPress={handleLogout}
           >
             <LogOut size={20} color="#EF4444" style={{ marginRight: 10 }} />
             <Text style={styles.logoutText}>LOGOUT SECURELY</Text>

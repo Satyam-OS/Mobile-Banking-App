@@ -1,14 +1,14 @@
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import React from "react";
 import {
-    Dimensions,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const { width } = Dimensions.get("window");
@@ -18,10 +18,18 @@ interface ChipProps {
   icon: any;
   label: string;
   active?: boolean;
+  inUse?: boolean; // Added inUse prop
 }
 
-const CategoryChip = ({ icon, label, active }: ChipProps) => (
-  <TouchableOpacity style={[styles.chip, active && styles.chipActive]}>
+const CategoryChip = ({ icon, label, active, inUse = true }: ChipProps) => (
+  <TouchableOpacity
+    style={[
+      styles.chip,
+      active && styles.chipActive,
+      !inUse && { opacity: 0.35 }, // Faded state
+    ]}
+    disabled={!inUse} // Disable interaction if not in use
+  >
     <MaterialCommunityIcons
       name={icon}
       size={18}
@@ -40,10 +48,24 @@ interface InvestProps {
   price: string;
   change: string;
   up: boolean;
+  inUse?: boolean; // Added inUse prop
 }
 
-const InvestItem = ({ name, ticker, price, change, up }: InvestProps) => (
-  <TouchableOpacity style={styles.menuItem}>
+const InvestItem = ({
+  name,
+  ticker,
+  price,
+  change,
+  up,
+  inUse = true,
+}: InvestProps) => (
+  <TouchableOpacity
+    style={[
+      styles.menuItem,
+      !inUse && { opacity: 0.35 }, // Faded state
+    ]}
+    disabled={!inUse} // Disable interaction if not in use
+  >
     <View style={styles.menuIconBox}>
       <Text style={styles.tickerIconText}>{ticker[0]}</Text>
     </View>
@@ -92,13 +114,13 @@ const InvestDashboard = ({ navigation }: any) => {
         <View style={styles.portfolioContainer}>
           <Text style={styles.portfolioLabel}>Portfolio Balance</Text>
           <Text style={styles.portfolioValue}>₹8,24,850.42</Text>
-          <div style={styles.statsRow}>
+          <View style={styles.statsRow}>
             <View style={styles.trendPill}>
               <Feather name="trending-up" size={14} color="#FFF" />
               <Text style={styles.statsText}>+5.2%</Text>
             </View>
             <Text style={styles.statsSubText}>vs last month</Text>
-          </div>
+          </View>
         </View>
       </View>
 
@@ -111,11 +133,11 @@ const InvestDashboard = ({ navigation }: any) => {
           style={styles.chipScroll}
           contentContainerStyle={{ paddingLeft: 24, paddingRight: 24 }}
         >
-          <CategoryChip icon="trending-up" label="Stocks" active />
-          <CategoryChip icon="chart-line" label="Mutual Funds" />
-          <CategoryChip icon="bitcoin" label="Crypto" />
-          <CategoryChip icon="bank" label="Bonds" />
-          <CategoryChip icon="gold" label="Gold" />
+          <CategoryChip icon="trending-up" label="Stocks" active inUse={true} />
+          <CategoryChip icon="chart-line" label="Mutual Funds" inUse={false} />
+          <CategoryChip icon="bitcoin" label="Crypto" inUse={false} />
+          <CategoryChip icon="bank" label="Bonds" inUse={false} />
+          <CategoryChip icon="gold" label="Gold" inUse={false} />
         </ScrollView>
       </View>
 
@@ -127,7 +149,7 @@ const InvestDashboard = ({ navigation }: any) => {
       >
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionLabel}>Market Watch</Text>
-          <TouchableOpacity>
+          <TouchableOpacity style={{ opacity: 0.35 }} disabled>
             <Text style={styles.viewAll}>See All</Text>
           </TouchableOpacity>
         </View>
@@ -137,7 +159,8 @@ const InvestDashboard = ({ navigation }: any) => {
           ticker="RELIANCE"
           price="₹2,942.60"
           change="+1.45%"
-          up={true}
+          up={false}
+          inUse={false}
         />
         <InvestItem
           name="HDFC Bank"
@@ -145,20 +168,23 @@ const InvestDashboard = ({ navigation }: any) => {
           price="₹1,432.20"
           change="-0.30%"
           up={false}
+          inUse={false}
         />
         <InvestItem
           name="Tata Motors"
           ticker="TATAMOTORS"
           price="₹920.45"
           change="+4.12%"
-          up={true}
+          up={false}
+          inUse={false}
         />
         <InvestItem
           name="Infosys Ltd"
           ticker="INFY"
           price="₹1,505.15"
           change="+0.85%"
-          up={true}
+          up={false}
+          inUse={false}
         />
         <InvestItem
           name="Zomato Ltd"
@@ -166,20 +192,23 @@ const InvestDashboard = ({ navigation }: any) => {
           price="₹174.42"
           change="-1.12%"
           up={false}
+          inUse={false}
         />
         <InvestItem
           name="ICICI Bank"
           ticker="ICICIBANK"
           price="₹1,080.30"
           change="+2.15%"
-          up={true}
+          up={false}
+          inUse={false}
         />
         <InvestItem
           name="Axis Bank"
           ticker="AXISBANK"
           price="₹1,050.00"
           change="+0.45%"
-          up={true}
+          up={false}
+          inUse={false}
         />
         <InvestItem
           name="Wipro"
@@ -187,6 +216,7 @@ const InvestDashboard = ({ navigation }: any) => {
           price="₹480.20"
           change="-0.90%"
           up={false}
+          inUse={false}
         />
       </ScrollView>
 

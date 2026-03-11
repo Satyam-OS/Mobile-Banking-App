@@ -18,7 +18,29 @@ export default function GuestOtp({ navigation, route }: any) {
   const { mobile } = route.params;
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null); // ✅ Added for inline error display
+  const [resending, setResending] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const handleResend = async () => {
+    if (resending) return;
+    setResending(true);
+    try {
+      await authService.generateOtp(mobile);
+      Alert.alert("Code Sent", `A new OTP has been sent to +91 ${mobile}`);
+    } catch (err: any) {
+      const msg = err.message || "";
+      if (msg === "SERVER_ERROR") {
+        Alert.alert("Service Unavailable", "OTP service is currently down. Please try login with password instead.", [
+          { text: "Go to Login", onPress: () => navigation.navigate("Login") },
+          { text: "OK", style: "cancel" },
+        ]);
+      } else {
+        Alert.alert("Error", "Could not resend OTP. Please try again.");
+      }
+    } finally {
+      setResending(false);
+    }
+  };
 
   const verifyOtp = async () => {
     // Reset error state on new attempt
@@ -127,10 +149,15 @@ export default function GuestOtp({ navigation, route }: any) {
 
         <TouchableOpacity
           style={styles.resendBtn}
-          onPress={() => authService.generateOtp(mobile)}
+          onPress={handleResend}
+          disabled={resending}
         >
           <Text style={styles.resendText}>
-            Didn't receive code? <Text style={styles.resendLink}>Resend</Text>
+            Didn't receive code?{" "}
+            {resending
+              ? <Text style={styles.resendLink}>Sending...</Text>
+              : <Text style={styles.resendLink}>Resend</Text>
+            }
           </Text>
         </TouchableOpacity>
 
