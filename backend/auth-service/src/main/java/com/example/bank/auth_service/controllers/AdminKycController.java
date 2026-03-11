@@ -1,24 +1,42 @@
 package com.example.bank.auth_service.controllers;
 
 import com.example.bank.auth_service.entity.KycApplication;
-import com.example.bank.auth_service.service.KycService;
+import com.example.bank.auth_service.entity.KycStatus;
+import com.example.bank.auth_service.repository.KycRepository;
+import com.example.bank.auth_service.service.AdminKycService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/kyc")
+@RequestMapping("/admin/kyc")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('USER')")
-public class KycController {
+@PreAuthorize("hasRole('ADMIN')")
+public class AdminKycController {
 
-    private final KycService kycService;
+    private final AdminKycService adminKycService;
+    private final KycRepository kycRepository;
 
-    @PostMapping("/submit")
-    public ResponseEntity<?> submit(@RequestBody KycApplication req) {
-        System.out.println("KYC CONTROLLER HIT");
-        kycService.submitKyc(req);
-        return ResponseEntity.ok("KYC SUBMITTED");
+    // FETCH PENDING KYCs
+    @GetMapping("/pending")
+    public List<KycApplication> getPendingKycs() {
+        return kycRepository.findByStatus(KycStatus.SUBMITTED);
+    }
+
+    @PostMapping("/approve/{mobile}")
+    public String approve(@PathVariable String mobile) {
+        adminKycService.approveKyc(mobile);
+        return "KYC APPROVED";
+    }
+
+    @PostMapping("/reject/{mobile}")
+    public String reject(
+            @PathVariable String mobile,
+            @RequestParam String reason
+    ) {
+        adminKycService.rejectKyc(mobile, reason);
+        return "KYC REJECTED";
     }
 }

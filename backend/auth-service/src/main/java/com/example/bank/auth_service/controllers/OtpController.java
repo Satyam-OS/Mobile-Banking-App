@@ -29,7 +29,11 @@ public class OtpController {
             @RequestBody OtpVerifyRequest req
     ) {
         otpService.verifyOtp(req.getMobile(), req.getOtp());
+
+        // OTP verify = identity proof only (no User exists yet)
+        // Token uses mobile as subject — only valid for KYC submission
         String token = jwtUtil.generateKycToken(req.getMobile());
+
         return ResponseEntity.ok(
                 Map.of(
                         "message", "OTP verified. Please submit your KYC to complete registration.",
