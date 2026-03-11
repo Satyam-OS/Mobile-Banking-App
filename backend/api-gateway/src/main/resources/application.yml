@@ -8,7 +8,6 @@ spring:
   cloud:
     gateway:
       routes:
-        # ─── Swagger API-Docs (no JWT) ──────────────────────────────────────────
         - id: auth-api-docs
           uri: ${AUTH_SERVICE_URL:http://localhost:8081}
           predicates:
@@ -30,7 +29,6 @@ spring:
           filters:
             - RewritePath=/transaction/v3/api-docs(?<segment>.*), /v3/api-docs${segment}
 
-        # ─── Block internal endpoints ───────────────────────────────────────────
         - id: block-account-internal
           uri: no://op
           predicates:
@@ -38,7 +36,6 @@ spring:
           filters:
             - SetStatus=403
 
-        # ─── Auth Service ───────────────────────────────────────────────────────
         - id: auth-service
           uri: ${AUTH_SERVICE_URL:http://localhost:8081}
           predicates:
@@ -46,7 +43,6 @@ spring:
           filters:
             - StripPrefix=1
 
-        # ─── Account Service (JWT protected) ───────────────────────────────────
         - id: account-service
           uri: ${ACCOUNT_SERVICE_URL:http://localhost:8082}
           predicates:
@@ -55,7 +51,6 @@ spring:
             - StripPrefix=1
             - JwtAuthenticationFilter
 
-        # ─── Transaction Service (JWT protected) ───────────────────────────────
         - id: transaction-service
           uri: ${TRANSACTION_SERVICE_URL:http://localhost:8083}
           predicates:
@@ -63,14 +58,6 @@ spring:
           filters:
             - StripPrefix=1
             - JwtAuthenticationFilter
-
-      globalcors:
-        corsConfigurations:
-          '[/**]':
-            allowedOrigins: "*"
-            allowedMethods: [GET, POST, PUT, DELETE, OPTIONS, PATCH]
-            allowedHeaders: "*"
-            exposedHeaders: "*"
 
 springdoc:
   swagger-ui:
