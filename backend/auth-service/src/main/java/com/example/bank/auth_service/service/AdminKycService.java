@@ -28,7 +28,10 @@ public class AdminKycService {
     private final PasswordEncoder passwordEncoder;
     private final RestTemplate restTemplate;
 
-    @Value("${account.service.url:http://localhost:8082}")
+    // ✅ FIX: Use the yml property key (account.service.url) not the raw env var name.
+    // The yml already maps ACCOUNT_SERVICE_URL → account.service.url with a localhost fallback.
+    // Adding the Render URL as the @Value default means it works even without the env var set.
+    @Value("${account.service.url:https://nexusaccount-service.onrender.com}")
     private String accountServiceUrl;
 
     @Transactional
@@ -51,8 +54,7 @@ public class AdminKycService {
 
         String customerId = "CUST" + System.currentTimeMillis();
 
-        // ✅ FIX: Copy firstName and email from KYC application into the User record
-        // This is what allows the login response and dashboard to show the real name
+        // ✅ FIX: Copy firstName + email from KYC so dashboard shows real name
         User user = User.builder()
                 .mobile(mobile)
                 .customerId(customerId)
@@ -61,29 +63,22 @@ public class AdminKycService {
                 .active(true)
                 .forcePasswordReset(true)
                 .firstLogin(true)
-                .firstName(kyc.getFullName())   // ✅ FIX: was missing before
-                .email(kyc.getEmail())           // ✅ FIX: was missing before
+                .firstName(kyc.getFullName())
+                .email(kyc.getEmail())
                 .build();
 
         User savedUser = userRepository.save(user);
 
-        // ✅ FIX: No longer silent — throws clearly if account creation fails
-        // Admin will see the error and can retry the approval
         try {
             createAccountForUser(savedUser.getId());
             System.out.println("✅ USER + ACCOUNT CREATED | Mobile: " + mobile
-                    + " | CustomerId: " + customerId
-                    + " | Name: " + kyc.getFullName());
+                    + " | CustomerId: " + customerId);
         } catch (Exception e) {
             System.err.println("❌ ACCOUNT CREATION FAILED for user " + savedUser.getId()
                     + " (" + mobile + "): " + e.getMessage());
-            // Re-throw so admin sees error and can retry
             throw new RuntimeException(
-                    "User approved but bank account creation failed. Please retry approval or create account manually. Error: "
-                            + e.getMessage(), e);
+                    "User approved but bank account creation failed. Error: " + e.getMessage(), e);
         }
-
-        System.out.println("✅ KYC APPROVED | Mobile: " + mobile + " | Temp password: TEMP1234");
     }
 
     @Transactional
@@ -104,6 +99,9 @@ public class AdminKycService {
     }
 
     private void createAccountForUser(UUID userId) {
+        // accountServiceUrl = https://nexusaccount-service.onrender.com (default)
+        // AccountController is @RequestMapping("/account"), endpoint is @PostMapping("/internal/create")
+        // Full path: https://nexusaccount-service.onrender.com/account/internal/create
         String url = accountServiceUrl + "/account/internal/create";
 
         HttpHeaders headers = new HttpHeaders();
@@ -112,12 +110,14 @@ public class AdminKycService {
         Map<String, Object> body = new HashMap<>();
         body.put("userId", userId.toString());
 
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
-        ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
+        ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
 
         if (!response.getStatusCode().is2xxSuccessful()) {
             throw new RuntimeException("Account service returned: " + response.getStatusCode());
         }
+
+        System.out.println("✅ Account created for user: " + userId);
     }
 }
