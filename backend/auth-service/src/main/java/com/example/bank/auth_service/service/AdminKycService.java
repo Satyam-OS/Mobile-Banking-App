@@ -28,10 +28,10 @@ public class AdminKycService {
     private final PasswordEncoder passwordEncoder;
     private final RestTemplate restTemplate;
 
-    // ✅ FIX: Use the yml property key (account.service.url) not the raw env var name.
-    // The yml already maps ACCOUNT_SERVICE_URL → account.service.url with a localhost fallback.
-    // Adding the Render URL as the @Value default means it works even without the env var set.
-    @Value("${account.service.url:https://nexusaccount-service.onrender.com}")
+    // ✅ No hardcoded URL — reads from yml property which reads from env var.
+    // If ACCOUNT_SERVICE_URL is not set, Spring will fail fast at startup
+    // with a clear error rather than silently calling localhost.
+    @Value("${account.service.url}")
     private String accountServiceUrl;
 
     @Transactional
@@ -54,7 +54,6 @@ public class AdminKycService {
 
         String customerId = "CUST" + System.currentTimeMillis();
 
-        // ✅ FIX: Copy firstName + email from KYC so dashboard shows real name
         User user = User.builder()
                 .mobile(mobile)
                 .customerId(customerId)
@@ -74,15 +73,17 @@ public class AdminKycService {
             System.out.println("✅ USER + ACCOUNT CREATED | Mobile: " + mobile
                     + " | CustomerId: " + customerId);
         } catch (Exception e) {
-            System.err.println("❌ ACCOUNT CREATION FAILED for user " + savedUser.getId()
-                    + " (" + mobile + "): " + e.getMessage());
+            System.err.println("❌ ACCOUNT CREATION FAILED for user "
+                    + savedUser.getId() + " (" + mobile + "): " + e.getMessage());
             throw new RuntimeException(
-                    "User approved but bank account creation failed. Error: " + e.getMessage(), e);
+                    "User approved but bank account creation failed. Error: "
+                            + e.getMessage(), e);
         }
     }
 
     @Transactional
     public void rejectKyc(String mobile, String reason) {
+
         KycApplication kyc = kycRepository.findByMobile(mobile)
                 .orElseThrow(() -> new RuntimeException("KYC not found for mobile: " + mobile));
 
@@ -99,9 +100,6 @@ public class AdminKycService {
     }
 
     private void createAccountForUser(UUID userId) {
-        // accountServiceUrl = https://nexusaccount-service.onrender.com (default)
-        // AccountController is @RequestMapping("/account"), endpoint is @PostMapping("/internal/create")
-        // Full path: https://nexusaccount-service.onrender.com/account/internal/create
         String url = accountServiceUrl + "/account/internal/create";
 
         HttpHeaders headers = new HttpHeaders();

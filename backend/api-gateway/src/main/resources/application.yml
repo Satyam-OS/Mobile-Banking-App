@@ -8,7 +8,7 @@ spring:
   cloud:
     gateway:
       routes:
-        # ─── Swagger / API Docs (no JWT needed) ──────────────────────────────
+        # ─── Swagger / API Docs (no JWT) ─────────────────────────────────────
         - id: auth-api-docs
           uri: ${AUTH_SERVICE_URL}
           predicates:
@@ -30,7 +30,7 @@ spring:
           filters:
             - RewritePath=/transaction/v3/api-docs(?<segment>.*), /v3/api-docs${segment}
 
-        # ─── Security: block direct internal account creation ─────────────────
+        # ─── Block direct internal account creation ───────────────────────────
         - id: block-account-internal
           uri: no://op
           predicates:
@@ -39,7 +39,7 @@ spring:
             - SetStatus=403
 
         # ─── Auth user dashboard (JWT REQUIRED) ──────────────────────────────
-        # MUST be before the general /auth/** route (first-match wins)
+        # Must be BEFORE the general /auth/** route — first match wins
         - id: auth-user-protected
           uri: ${AUTH_SERVICE_URL}
           predicates:
@@ -48,7 +48,7 @@ spring:
             - StripPrefix=1
             - JwtAuthenticationFilter
 
-        # ─── Auth Service: login + reset-password (public, no JWT) ───────────
+        # ─── Auth: login, reset-password (public, no JWT) ────────────────────
         - id: auth-service
           uri: ${AUTH_SERVICE_URL}
           predicates:
@@ -57,15 +57,14 @@ spring:
             - StripPrefix=1
 
         # ─── OTP routes (public, no JWT) ─────────────────────────────────────
-        # OtpController maps to /otp/** directly on auth-service (NOT /auth/otp/**)
-        # No StripPrefix — path is forwarded as-is: /otp/generate → auth-service:/otp/generate
+        # OtpController is @RequestMapping("/otp") on auth-service — no StripPrefix
         - id: otp-service
           uri: ${AUTH_SERVICE_URL}
           predicates:
             - Path=/otp/**
 
-        # ─── KYC routes (JWT REQUIRED — KYC token from OTP verify) ──────────
-        # KycController maps to /kyc/** directly on auth-service (NOT /auth/kyc/**)
+        # ─── KYC routes (JWT REQUIRED) ───────────────────────────────────────
+        # KycController is @RequestMapping("/kyc") on auth-service — no StripPrefix
         - id: kyc-service
           uri: ${AUTH_SERVICE_URL}
           predicates:
@@ -108,7 +107,7 @@ springdoc:
     enabled: true
 
 jwt:
-  secret: ${JWT_SECRET:BANKING_APP_SECRET_KEY_1234567890}
+  secret: ${JWT_SECRET}
 
 management:
   endpoints:
