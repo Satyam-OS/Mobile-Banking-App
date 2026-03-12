@@ -10,21 +10,21 @@ spring:
       routes:
         # ─── Swagger / API Docs (no JWT needed) ──────────────────────────────
         - id: auth-api-docs
-          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          uri: ${AUTH_SERVICE_URL}
           predicates:
             - Path=/auth/v3/api-docs/**
           filters:
             - RewritePath=/auth/v3/api-docs(?<segment>.*), /v3/api-docs${segment}
 
         - id: account-api-docs
-          uri: ${ACCOUNT_SERVICE_URL:http://localhost:8082}
+          uri: ${ACCOUNT_SERVICE_URL}
           predicates:
             - Path=/account/v3/api-docs/**
           filters:
             - RewritePath=/account/v3/api-docs(?<segment>.*), /v3/api-docs${segment}
 
         - id: transaction-api-docs
-          uri: ${TRANSACTION_SERVICE_URL:http://localhost:8083}
+          uri: ${TRANSACTION_SERVICE_URL}
           predicates:
             - Path=/transaction/v3/api-docs/**
           filters:
@@ -41,7 +41,7 @@ spring:
         # ─── Auth user dashboard (JWT REQUIRED) ──────────────────────────────
         # MUST be before the general /auth/** route (first-match wins)
         - id: auth-user-protected
-          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          uri: ${AUTH_SERVICE_URL}
           predicates:
             - Path=/auth/user/**
           filters:
@@ -50,7 +50,7 @@ spring:
 
         # ─── Auth Service: login + reset-password (public, no JWT) ───────────
         - id: auth-service
-          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          uri: ${AUTH_SERVICE_URL}
           predicates:
             - Path=/auth/**
           filters:
@@ -60,14 +60,14 @@ spring:
         # OtpController maps to /otp/** directly on auth-service (NOT /auth/otp/**)
         # No StripPrefix — path is forwarded as-is: /otp/generate → auth-service:/otp/generate
         - id: otp-service
-          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          uri: ${AUTH_SERVICE_URL}
           predicates:
             - Path=/otp/**
 
         # ─── KYC routes (JWT REQUIRED — KYC token from OTP verify) ──────────
         # KycController maps to /kyc/** directly on auth-service (NOT /auth/kyc/**)
         - id: kyc-service
-          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          uri: ${AUTH_SERVICE_URL}
           predicates:
             - Path=/kyc/**
           filters:
@@ -75,7 +75,7 @@ spring:
 
         # ─── Account Service (JWT REQUIRED) ──────────────────────────────────
         - id: account-service
-          uri: ${ACCOUNT_SERVICE_URL:http://localhost:8082}
+          uri: ${ACCOUNT_SERVICE_URL}
           predicates:
             - Path=/account/**
           filters:
@@ -84,7 +84,7 @@ spring:
 
         # ─── Transaction Service (JWT REQUIRED) ──────────────────────────────
         - id: transaction-service
-          uri: ${TRANSACTION_SERVICE_URL:http://localhost:8083}
+          uri: ${TRANSACTION_SERVICE_URL}
           predicates:
             - Path=/transaction/**
           filters:
