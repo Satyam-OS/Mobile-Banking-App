@@ -38,7 +38,8 @@
           }
         }
       ],
-      "expo-camera"
+      "expo-camera",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "reactCompiler": true

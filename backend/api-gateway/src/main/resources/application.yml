@@ -38,10 +38,8 @@ spring:
           filters:
             - SetStatus=403
 
-        # ─── Auth Service: protected user routes (JWT REQUIRED) ──────────────
-        # ✅ FIX: /auth/user/** needs JWT so UserController gets the X-User-Id header.
-        # This route MUST be declared BEFORE the general /auth/** route below
-        # because Spring Cloud Gateway matches routes in declaration order.
+        # ─── Auth user dashboard (JWT REQUIRED) ──────────────────────────────
+        # MUST be before the general /auth/** route (first-match wins)
         - id: auth-user-protected
           uri: ${AUTH_SERVICE_URL:http://localhost:8081}
           predicates:
@@ -50,16 +48,30 @@ spring:
             - StripPrefix=1
             - JwtAuthenticationFilter
 
-        # ─── Auth Service: public routes (NO JWT) ────────────────────────────
-        # Handles: /auth/auth/login, /auth/otp/*, /auth/kyc/*, /auth/admin/*,
-        #          /auth/auth/reset-password
+        # ─── Auth Service: login + reset-password (public, no JWT) ───────────
         - id: auth-service
           uri: ${AUTH_SERVICE_URL:http://localhost:8081}
           predicates:
             - Path=/auth/**
           filters:
             - StripPrefix=1
-            # No JwtAuthenticationFilter — login/OTP/KYC must be public
+
+        # ─── OTP routes (public, no JWT) ─────────────────────────────────────
+        # OtpController maps to /otp/** directly on auth-service (NOT /auth/otp/**)
+        # No StripPrefix — path is forwarded as-is: /otp/generate → auth-service:/otp/generate
+        - id: otp-service
+          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/otp/**
+
+        # ─── KYC routes (JWT REQUIRED — KYC token from OTP verify) ──────────
+        # KycController maps to /kyc/** directly on auth-service (NOT /auth/kyc/**)
+        - id: kyc-service
+          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/kyc/**
+          filters:
+            - JwtAuthenticationFilter
 
         # ─── Account Service (JWT REQUIRED) ──────────────────────────────────
         - id: account-service
@@ -95,11 +107,9 @@ springdoc:
   api-docs:
     enabled: true
 
-# ─── JWT secret (must match all services) ────────────────────────────────────
 jwt:
   secret: ${JWT_SECRET:BANKING_APP_SECRET_KEY_1234567890}
 
-# ─── Actuator ────────────────────────────────────────────────────────────────
 management:
   endpoints:
     web:
