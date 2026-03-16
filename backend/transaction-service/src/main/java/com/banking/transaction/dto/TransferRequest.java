@@ -25,4 +25,4 @@ public class TransferRequest {
 
     @JsonAlias("note")
     private String description;
-
+}
