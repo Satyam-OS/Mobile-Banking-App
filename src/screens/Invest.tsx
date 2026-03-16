@@ -1,5 +1,5 @@
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import React from "react";
+import React, { useState } from "react";
 import {
   Dimensions,
   SafeAreaView,
@@ -18,17 +18,25 @@ interface ChipProps {
   icon: any;
   label: string;
   active?: boolean;
-  inUse?: boolean; // Added inUse prop
+  inUse?: boolean;
+  onPress?: () => void;
 }
 
-const CategoryChip = ({ icon, label, active, inUse = true }: ChipProps) => (
+const CategoryChip = ({
+  icon,
+  label,
+  active,
+  inUse = true,
+  onPress,
+}: ChipProps) => (
   <TouchableOpacity
     style={[
       styles.chip,
       active && styles.chipActive,
-      !inUse && { opacity: 0.35 }, // Faded state
+      !inUse && { opacity: 0.35 },
     ]}
-    disabled={!inUse} // Disable interaction if not in use
+    disabled={!inUse}
+    onPress={onPress}
   >
     <MaterialCommunityIcons
       name={icon}
@@ -48,7 +56,7 @@ interface InvestProps {
   price: string;
   change: string;
   up: boolean;
-  inUse?: boolean; // Added inUse prop
+  inUse?: boolean;
 }
 
 const InvestItem = ({
@@ -60,11 +68,8 @@ const InvestItem = ({
   inUse = true,
 }: InvestProps) => (
   <TouchableOpacity
-    style={[
-      styles.menuItem,
-      !inUse && { opacity: 0.35 }, // Faded state
-    ]}
-    disabled={!inUse} // Disable interaction if not in use
+    style={[styles.menuItem, !inUse && { opacity: 0.35 }]}
+    disabled={!inUse}
   >
     <View style={styles.menuIconBox}>
       <Text style={styles.tickerIconText}>{ticker[0]}</Text>
@@ -92,11 +97,15 @@ const InvestItem = ({
 );
 
 const InvestDashboard = ({ navigation }: any) => {
+  const [viewMode, setViewMode] = useState<"portfolio" | "explore">(
+    "portfolio",
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
 
-      {/* FIXED HEADER & PORTFOLIO */}
+      {/* FIXED HEADER (NAVY BLUE) */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <TouchableOpacity
@@ -112,8 +121,14 @@ const InvestDashboard = ({ navigation }: any) => {
         </View>
 
         <View style={styles.portfolioContainer}>
-          <Text style={styles.portfolioLabel}>Portfolio Balance</Text>
-          <Text style={styles.portfolioValue}>₹8,24,850.42</Text>
+          <Text style={styles.portfolioLabel}>
+            {viewMode === "portfolio"
+              ? "Portfolio Balance"
+              : "Recommended Balance"}
+          </Text>
+          <Text style={styles.portfolioValue}>
+            {viewMode === "portfolio" ? "₹8,24,850.42" : "₹0.00"}
+          </Text>
           <View style={styles.statsRow}>
             <View style={styles.trendPill}>
               <Feather name="trending-up" size={14} color="#FFF" />
@@ -124,107 +139,104 @@ const InvestDashboard = ({ navigation }: any) => {
         </View>
       </View>
 
-      {/* FIXED ASSET CLASSES (DOES NOT SCROLL VERTICALLY) */}
+      {/* ASSET CLASSES / TOGGLE */}
       <View style={styles.fixedAssetsContainer}>
-        <Text style={styles.sectionLabel}>Asset Classes</Text>
+        <Text style={styles.sectionLabel}>
+          {viewMode === "portfolio" ? "Asset Classes" : "Investment Options"}
+        </Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.chipScroll}
           contentContainerStyle={{ paddingLeft: 24, paddingRight: 24 }}
         >
-          <CategoryChip icon="trending-up" label="Stocks" active inUse={true} />
-          <CategoryChip icon="chart-line" label="Mutual Funds" inUse={false} />
-          <CategoryChip icon="bitcoin" label="Crypto" inUse={false} />
+          <CategoryChip
+            icon="trending-up"
+            label="Portfolio"
+            active={viewMode === "portfolio"}
+            onPress={() => setViewMode("portfolio")}
+          />
+          <CategoryChip
+            icon="rocket"
+            label="Explore"
+            active={viewMode === "explore"}
+            onPress={() => setViewMode("explore")}
+          />
           <CategoryChip icon="bank" label="Bonds" inUse={false} />
           <CategoryChip icon="gold" label="Gold" inUse={false} />
         </ScrollView>
       </View>
 
-      {/* SCROLLABLE MARKET WATCH ONLY */}
+      {/* DYNAMIC CONTENT */}
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 140 }}
       >
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionLabel}>Market Watch</Text>
-          <TouchableOpacity style={{ opacity: 0.35 }} disabled>
-            <Text style={styles.viewAll}>See All</Text>
-          </TouchableOpacity>
+          <Text style={styles.sectionLabel}>
+            {viewMode === "portfolio" ? "Market Watch" : "Bank Best Picks"}
+          </Text>
         </View>
 
-        <InvestItem
-          name="Reliance Industries"
-          ticker="RELIANCE"
-          price="₹2,942.60"
-          change="+1.45%"
-          up={false}
-          inUse={false}
-        />
-        <InvestItem
-          name="HDFC Bank"
-          ticker="HDFCBANK"
-          price="₹1,432.20"
-          change="-0.30%"
-          up={false}
-          inUse={false}
-        />
-        <InvestItem
-          name="Tata Motors"
-          ticker="TATAMOTORS"
-          price="₹920.45"
-          change="+4.12%"
-          up={false}
-          inUse={false}
-        />
-        <InvestItem
-          name="Infosys Ltd"
-          ticker="INFY"
-          price="₹1,505.15"
-          change="+0.85%"
-          up={false}
-          inUse={false}
-        />
-        <InvestItem
-          name="Zomato Ltd"
-          ticker="ZOMATO"
-          price="₹174.42"
-          change="-1.12%"
-          up={false}
-          inUse={false}
-        />
-        <InvestItem
-          name="ICICI Bank"
-          ticker="ICICIBANK"
-          price="₹1,080.30"
-          change="+2.15%"
-          up={false}
-          inUse={false}
-        />
-        <InvestItem
-          name="Axis Bank"
-          ticker="AXISBANK"
-          price="₹1,050.00"
-          change="+0.45%"
-          up={false}
-          inUse={false}
-        />
-        <InvestItem
-          name="Wipro"
-          ticker="WIPRO"
-          price="₹480.20"
-          change="-0.90%"
-          up={false}
-          inUse={false}
-        />
+        {viewMode === "portfolio" ? (
+          <>
+            <InvestItem
+              name="Reliance Industries"
+              ticker="RELIANCE"
+              price="₹2,942.60"
+              change="+1.45%"
+              up={true}
+              inUse={false}
+            />
+            <InvestItem
+              name="HDFC Bank"
+              ticker="HDFCBANK"
+              price="₹1,432.20"
+              change="-0.30%"
+              up={false}
+              inUse={false}
+            />
+            <InvestItem
+              name="Tata Motors"
+              ticker="TATAMOTORS"
+              price="₹920.45"
+              change="+4.12%"
+              up={true}
+              inUse={false}
+            />
+          </>
+        ) : (
+          <>
+            <InvestItem
+              name="SBI Bluechip Fund"
+              ticker="SBIBLUE"
+              price="₹120.50"
+              change="+2.4%"
+              up={true}
+              inUse={false}
+            />
+            <InvestItem
+              name="HDFC Index Fund"
+              ticker="HDFCINDEX"
+              price="₹450.20"
+              change="+1.1%"
+              up={true}
+              inUse={false}
+            />
+          </>
+        )}
       </ScrollView>
 
       {/* FLOATING FOOTER */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.9}>
-          <Text style={styles.primaryBtnText}>Discover New Assets</Text>
-          <Feather name="arrow-right" size={20} color="#FFF" />
+        <TouchableOpacity
+          style={[styles.primaryBtn, { opacity: 0.6 }]}
+          activeOpacity={0.9}
+          disabled={true}
+        >
+          <Text style={styles.primaryBtnText}>Open Demat Account</Text>
+          <Feather name="external-link" size={20} color="#FFF" />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -234,7 +246,7 @@ const InvestDashboard = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F8FAFC" },
   header: {
-    backgroundColor: "#0EA5E9",
+    backgroundColor: "#001F3F", // Navy Blue
     paddingHorizontal: 24,
     paddingTop: 15,
     paddingBottom: 40,
@@ -292,7 +304,6 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontWeight: "500",
   },
-
   fixedAssetsContainer: {
     marginTop: 20,
     marginBottom: 10,
@@ -314,14 +325,7 @@ const styles = StyleSheet.create({
     paddingRight: 24,
     marginTop: 10,
   },
-  viewAll: {
-    color: "#0EA5E9",
-    fontSize: 13,
-    fontWeight: "700",
-    marginBottom: 16,
-  },
   chipScroll: { marginBottom: 10 },
-
   chip: {
     flexDirection: "row",
     alignItems: "center",
@@ -344,7 +348,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   chipTextActive: { color: "#FFF" },
-
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -383,7 +386,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   changeText: { fontSize: 11, fontWeight: "800" },
-
   footer: {
     position: "absolute",
     bottom: 0,

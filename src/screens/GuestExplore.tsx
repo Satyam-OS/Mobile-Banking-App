@@ -161,7 +161,7 @@ export default function GuestExplore({ navigation }: any) {
 
     try {
       setLoading(true);
-      // Calls POST https://mobile-banking-app.onrender.com/otp/generate
+      // Calls POST https://banking-app-1ap8.onrender.com/otp/generate
       await authService.generateOtp(mobile);
 
       setShowModal(false);

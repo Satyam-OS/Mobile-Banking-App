@@ -29,44 +29,33 @@ const Login = ({ navigation }: any) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-
-  // Updated validation state to hold specific error messages
   const [errors, setErrors] = useState({ mobile: "", password: "" });
-
-  const [formData, setFormData] = useState({
-    mobile: "",
-    password: "",
-  });
+  const [formData, setFormData] = useState({ mobile: "", password: "" });
+  const [apiError, setApiError] = useState("");
 
   const handleMobileChange = (text: string) => {
     const cleaned = text.replace(/[^0-9]/g, "");
     if (cleaned.length <= 10) {
       setFormData({ ...formData, mobile: cleaned });
-      // Clear error as user types
       if (errors.mobile) setErrors({ ...errors, mobile: "" });
+      if (apiError) setApiError("");
     }
   };
 
   const handlePasswordChange = (text: string) => {
     setFormData({ ...formData, password: text });
-    // Clear error as user types
     if (errors.password) setErrors({ ...errors, password: "" });
+    if (apiError) setApiError("");
   };
 
   const handleSubmit = async () => {
     let mobileError = "";
     let passwordError = "";
 
-    // Validation Logic
-    if (formData.mobile.length === 0) {
-      mobileError = "Mobile number is required";
-    } else if (formData.mobile.length !== 10) {
+    if (!formData.mobile) mobileError = "Mobile number is required";
+    else if (formData.mobile.length !== 10)
       mobileError = "Enter a valid 10-digit number";
-    }
-
-    if (formData.password.length === 0) {
-      passwordError = "Password is required";
-    }
+    if (!formData.password) passwordError = "Password is required";
 
     if (mobileError || passwordError) {
       setErrors({ mobile: mobileError, password: passwordError });
@@ -74,23 +63,45 @@ const Login = ({ navigation }: any) => {
     }
 
     setIsLoading(true);
+    setApiError("");
+
     try {
       const response = await authService.login({
         mobile: formData.mobile,
         password: formData.password,
       });
 
-      if (response.role === "ADMIN") {
+      const role = (response.role || "USER").toUpperCase();
+      if (role === "ADMIN") {
         navigation.replace("AdminDashboard");
       } else {
         navigation.replace("Dashboard");
       }
     } catch (e: any) {
-      // Handle Incorrect Password/Credentials from API
-      setErrors({
-        mobile: "",
-        password: "Incorrect password",
-      });
+      const msg = e.message || "";
+      if (msg === "NETWORK_ERROR") {
+        setApiError(
+          "Network error. The server may be waking up — please try again in a moment.",
+        );
+      } else if (msg === "SERVER_ERROR") {
+        setApiError("Server error. Please try again.");
+      } else if (
+        msg.toLowerCase().includes("invalid") ||
+        msg.toLowerCase().includes("incorrect") ||
+        msg.toLowerCase().includes("wrong")
+      ) {
+        setErrors({ mobile: "", password: "Incorrect mobile or password" });
+      } else if (
+        msg === "Invalid credentials" ||
+        msg === "Invalid login response"
+      ) {
+        setErrors({ mobile: "", password: "Incorrect mobile or password" });
+      } else {
+        setErrors({
+          mobile: "",
+          password: msg || "Login failed. Please try again.",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -108,6 +119,7 @@ const Login = ({ navigation }: any) => {
           bounces={false}
           showsVerticalScrollIndicator={false}
         >
+          {/* Branding */}
           <View style={styles.brandingSection}>
             <View style={styles.logoContainer}>
               <View style={styles.logoInner}>
@@ -120,6 +132,7 @@ const Login = ({ navigation }: any) => {
             </View>
           </View>
 
+          {/* Form */}
           <View style={styles.formContainer}>
             <View style={styles.headerTextGroup}>
               <Text style={styles.welcomeTitle}>Secure Login</Text>
@@ -128,7 +141,14 @@ const Login = ({ navigation }: any) => {
               </Text>
             </View>
 
-            {/* Mobile Input Group */}
+            {/* API Error Banner */}
+            {apiError ? (
+              <View style={styles.apiBanner}>
+                <Text style={styles.apiBannerText}>⚠️ {apiError}</Text>
+              </View>
+            ) : null}
+
+            {/* Mobile */}
             <View style={styles.inputGroup}>
               <View style={styles.labelRow}>
                 <Text
@@ -137,11 +157,11 @@ const Login = ({ navigation }: any) => {
                     !!errors.mobile && { color: "#EF4444" },
                   ]}
                 >
-                  REGISTERED MOBILE NUMBER {!!errors.mobile && "*"}
+                  REGISTERED MOBILE NUMBER{errors.mobile ? " *" : ""}
                 </Text>
-                {!!errors.mobile && (
+                {errors.mobile ? (
                   <Text style={styles.errorTextInline}>{errors.mobile}</Text>
-                )}
+                ) : null}
               </View>
               <View
                 style={[
@@ -151,7 +171,7 @@ const Login = ({ navigation }: any) => {
               >
                 <Smartphone
                   size={20}
-                  color={!!errors.mobile ? "#EF4444" : "#001F3F"}
+                  color={errors.mobile ? "#EF4444" : "#001F3F"}
                   style={styles.inputIcon}
                 />
                 <TextInput
@@ -166,7 +186,7 @@ const Login = ({ navigation }: any) => {
               </View>
             </View>
 
-            {/* Password Input Group */}
+            {/* Password */}
             <View style={styles.inputGroup}>
               <View style={styles.labelRow}>
                 <Text
@@ -175,11 +195,11 @@ const Login = ({ navigation }: any) => {
                     !!errors.password && { color: "#EF4444" },
                   ]}
                 >
-                  ACCOUNT PASSWORD {!!errors.password && "*"}
+                  ACCOUNT PASSWORD{errors.password ? " *" : ""}
                 </Text>
-                {!!errors.password && (
+                {errors.password ? (
                   <Text style={styles.errorTextInline}>{errors.password}</Text>
-                )}
+                ) : null}
               </View>
               <View
                 style={[
@@ -189,7 +209,7 @@ const Login = ({ navigation }: any) => {
               >
                 <Lock
                   size={20}
-                  color={!!errors.password ? "#EF4444" : "#0EA5E9"}
+                  color={errors.password ? "#EF4444" : "#0EA5E9"}
                   style={styles.inputIcon}
                 />
                 <TextInput
@@ -213,6 +233,7 @@ const Login = ({ navigation }: any) => {
               </View>
             </View>
 
+            {/* Remember + Forgot */}
             <View style={styles.forgotRow}>
               <TouchableOpacity
                 style={styles.checkboxArea}
@@ -228,10 +249,9 @@ const Login = ({ navigation }: any) => {
                 </View>
                 <Text style={styles.checkboxLabel}>Remember Device</Text>
               </TouchableOpacity>
-
               <View style={styles.rightActionGroup}>
                 <TouchableOpacity
-                  onPress={() => navigation.navigate("SetPassword")}
+                  onPress={() => navigation.navigate("ForgotPassword")}
                 >
                   <Text style={styles.forgotText}>Forgot Password?</Text>
                 </TouchableOpacity>
@@ -244,6 +264,7 @@ const Login = ({ navigation }: any) => {
               </View>
             </View>
 
+            {/* Buttons */}
             <View style={styles.buttonRow}>
               <TouchableOpacity
                 style={[
@@ -262,7 +283,6 @@ const Login = ({ navigation }: any) => {
                   </>
                 )}
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={styles.bioButton}
                 onPress={() =>
@@ -273,6 +293,7 @@ const Login = ({ navigation }: any) => {
               </TouchableOpacity>
             </View>
 
+            {/* Footer links */}
             <View style={styles.footerLinks}>
               <TouchableOpacity
                 style={styles.guestButton}
@@ -282,7 +303,6 @@ const Login = ({ navigation }: any) => {
                 <Text style={styles.guestTextLabel}>New to Nexus? </Text>
                 <Text style={styles.exploreText}>EXPLORE BENEFITS</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 onPress={() => navigation.navigate("Register")}
                 style={styles.registerBtn}
@@ -335,9 +355,6 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
     elevation: 5,
   },
   brandName: {
@@ -369,7 +386,7 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
     marginTop: -20,
   },
-  headerTextGroup: { marginBottom: 35 },
+  headerTextGroup: { marginBottom: 30 },
   welcomeTitle: {
     fontSize: 28,
     fontWeight: "900",
@@ -382,6 +399,15 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontWeight: "500",
   },
+  apiBanner: {
+    backgroundColor: "#FEF9C3",
+    borderWidth: 1,
+    borderColor: "#FDE047",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 20,
+  },
+  apiBannerText: { color: "#854D0E", fontWeight: "700", fontSize: 13 },
   inputGroup: { marginBottom: 20 },
   labelRow: {
     flexDirection: "row",
@@ -395,11 +421,7 @@ const styles = StyleSheet.create({
     color: "#64748B",
     letterSpacing: 1,
   },
-  errorTextInline: {
-    fontSize: 11,
-    color: "#EF4444",
-    fontWeight: "700",
-  },
+  errorTextInline: { fontSize: 11, color: "#EF4444", fontWeight: "700" },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
@@ -455,9 +477,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     elevation: 8,
-    shadowColor: "#001F3F",
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
   },
   loginButtonText: {
     color: "#FFF",
@@ -474,22 +493,18 @@ const styles = StyleSheet.create({
     borderColor: "#E2E8F0",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
   },
   footerLinks: { alignItems: "center", gap: 20 },
   guestButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(14, 165, 233, 0.08)",
+    backgroundColor: "rgba(14,165,233,0.08)",
     paddingVertical: 14,
     paddingHorizontal: 25,
     borderRadius: 18,
     gap: 8,
     borderWidth: 1,
-    borderColor: "rgba(14, 165, 233, 0.1)",
+    borderColor: "rgba(14,165,233,0.1)",
   },
   guestTextLabel: { color: "#64748B", fontWeight: "600", fontSize: 14 },
   exploreText: { color: "#0EA5E9", fontWeight: "800", fontSize: 14 },

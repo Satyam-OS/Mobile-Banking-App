@@ -11,19 +11,21 @@ import {
   Heart,
   Home,
   LayoutGrid,
+  Pin,
   ScanLine,
   Search,
   ShieldCheck,
   Smartphone,
   TrendingUp,
   Wallet,
-  Zap,
+  Zap
 } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
   Platform,
+  RefreshControl,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -32,126 +34,259 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { accountService } from "../services/accountService";
+import { authService } from "../services/authService";
+import { transactionService } from "../services/transactionService";
 
 const { width: windowWidth } = Dimensions.get("window");
+const IS_WIDE = windowWidth > 500;
+const CARD_WIDTH = IS_WIDE
+  ? Math.min(windowWidth * 0.88, 420)
+  : windowWidth * 0.85;
 
-// Responsive Logic
-const IS_WIDE = windowWidth > 900;
-const MOBILE_CARD_WIDTH = windowWidth * 0.85;
-const WEB_CARD_WIDTH = 320;
+const MOCK_ACCOUNTS = [
+  {
+    id: "1",
+    type: "SAVINGS ACCOUNT",
+    name: "Savings Account",
+    balance: "0.00",
+    rawBalance: 0,
+    accNo: "**** 0000",
+    color: "#002D72",
+    tag: "PRIMARY",
+  },
+];
 
-const HomeScreen = ({ navigation }: any) => {
-  // FIXED: Track balance visibility per card ID
+const MOCK_TRANSACTIONS = [
+  {
+    title: "No transactions yet",
+    date: "",
+    amt: "",
+    icon: Wallet,
+    color: "#94A3B8",
+    type: "info",
+  },
+];
+
+const getGreeting = () => {
+  const h = new Date().getHours();
+  if (h < 12) return "Good Morning 🌅";
+  if (h < 17) return "Good Afternoon ☀️";
+  return "Good Evening 🌙";
+};
+
+export default function HomeScreen({ navigation }: any) {
   const [visibleBalances, setVisibleBalances] = useState<{
     [key: string]: boolean;
   }>({});
   const [isLoading, setIsLoading] = useState(true);
-
+  const [refreshing, setRefreshing] = useState(false);
   const [userProfile, setUserProfile] = useState({
-    firstName: "User",
+    firstName: "",
     initials: "U",
   });
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
 
-  const [accounts, setAccounts] = useState([
-    {
-      id: "1",
-      type: "SAVINGS ACCOUNT",
-      name: "Savings Account",
-      balance: "₹2,85,750.50",
-      accNo: "**** 3456",
-      color: "#002D72",
-      tag: "PRIMARY",
-    },
-    {
-      id: "2",
-      type: "CURRENT ACCOUNT",
-      name: "Business Account",
-      balance: "₹12,40,000.00",
-      accNo: "**** 7654",
-      color: "#1E293B",
-      tag: "BUSINESS",
-    },
-    {
-      id: "3",
-      type: "FD ACCOUNT",
-      name: "Fixed Deposit",
-      balance: "₹5,00,000.00",
-      accNo: "**** 1234",
-      color: "#4338CA",
-      tag: "INVEST",
-    },
-  ]);
+  const txIcons = [CreditCard, Zap, Wallet, FileText, Smartphone];
+  const txColors = ["#F472B6", "#FB923C", "#4ADE80", "#60A5FA", "#A78BFA"];
 
-  const [recentTransactions, setRecentTransactions] = useState([
-    {
-      title: "Amazon Shopping",
-      date: "14 Dec 2024",
-      amt: "- ₹2,499.00",
-      icon: CreditCard,
-      color: "#F472B6",
-    },
-    {
-      title: "Swiggy Food Order",
-      date: "14 Dec 2024",
-      amt: "- ₹850.00",
-      icon: Zap,
-      color: "#FB923C",
-    },
-    {
-      title: "Salary Credit",
-      date: "12 Dec 2024",
-      amt: "+ ₹75,000.00",
-      icon: Wallet,
-      color: "#4ADE80",
-    },
-  ]);
+  const loadData = useCallback(async () => {
+    // Step 1: Load stored name immediately for instant display
+    const storedName = await AsyncStorage.getItem("user_name");
+    const storedMobile = await AsyncStorage.getItem("user_mobile");
+    const displayName =
+      storedName && storedName !== storedMobile
+        ? storedName
+        : storedMobile || "User";
+    setUserProfile({
+      firstName: displayName,
+      initials: displayName.charAt(0).toUpperCase(),
+    });
+
+    // Step 2: Fetch real data from all services in parallel
+    try {
+      const [accResult, txResult, dashResult] = await Promise.allSettled([
+        accountService.getAccountDetails(),
+        transactionService.getTransactionHistory(),
+        authService.getUserDashboard(), // ✅ FIX: Added — fetches real name from DB
+      ]);
+
+      // ✅ FIX: Use dashboard response as the authoritative source for user name
+      // The login response now sends firstName, but on subsequent app opens
+      // we refresh it from the dashboard endpoint
+      if (dashResult.status === "fulfilled" && dashResult.value) {
+        const dash = dashResult.value;
+        const name = dash.firstName || dash.name || dash.mobile;
+        if (name && name.trim() !== "" && name !== storedMobile) {
+          setUserProfile({
+            firstName: name,
+            initials: name.charAt(0).toUpperCase(),
+          });
+          await AsyncStorage.setItem("user_name", name);
+        }
+      }
+
+      // Process account data
+      let accountsLoaded = false;
+      if (accResult.status === "fulfilled" && accResult.value) {
+        const raw = accResult.value;
+
+        // Handle different response shapes
+        const list: any[] = Array.isArray(raw)
+          ? raw
+          : raw.accounts
+            ? raw.accounts
+            : raw.account
+              ? [raw.account]
+              : raw.balance !== undefined || raw.availableBalance !== undefined
+                ? [raw]
+                : [];
+
+        if (list.length > 0) {
+          const COLORS = ["#002D72", "#1E293B", "#4338CA", "#0F172A"];
+          const TAGS = ["PRIMARY", "BUSINESS", "INVEST", "SAVINGS"];
+          const mapped = list.map((acc: any, i: number) => {
+            const bal =
+              acc.balance ?? acc.availableBalance ?? acc.currentBalance ?? 0;
+            return {
+              id: acc.id || acc.accountId || acc.accountNumber || String(i + 1),
+              type: (
+                acc.accountType ||
+                acc.type ||
+                "SAVINGS ACCOUNT"
+              ).toUpperCase(),
+              name:
+                acc.accountName || acc.name || acc.holderName || "My Account",
+              balance: Number(bal).toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+              }),
+              rawBalance: Number(bal),
+              accNo: acc.accountNumber
+                ? `**** ${String(acc.accountNumber).slice(-4)}`
+                : "**** ****",
+              color: COLORS[i % COLORS.length],
+              tag: TAGS[i % TAGS.length],
+            };
+          });
+          setAccounts(mapped);
+          accountsLoaded = true;
+          // ✅ NOTE: We deliberately do NOT extract name from account response here.
+          // Name now comes from dashResult (getUserDashboard) above, which is more reliable.
+        }
+      }
+
+      // If no accounts loaded, show a placeholder card with 0 balance
+      if (!accountsLoaded) {
+        const mobile = storedMobile || "";
+        setAccounts([
+          {
+            id: "1",
+            type: "SAVINGS ACCOUNT",
+            name: "My Account",
+            balance: "0.00",
+            rawBalance: 0,
+            accNo: mobile ? `**** ${mobile.slice(-4)}` : "**** ****",
+            color: "#002D72",
+            tag: "PRIMARY",
+          },
+        ]);
+      }
+
+      // Process transactions
+      if (
+        txResult.status === "fulfilled" &&
+        Array.isArray(txResult.value) &&
+        txResult.value.length > 0
+      ) {
+        const recent = txResult.value.slice(0, 5).map((tx: any, i: number) => {
+          // ✅ FIX: Backend returns CREDIT/DEBIT/TRANSFER uppercase — normalise
+          const rawType = (tx.type || tx.transactionType || "").toUpperCase();
+          const isCredit = rawType === "CREDIT" || rawType === "DEPOSIT";
+          return {
+            title:
+              tx.description ||
+              tx.merchant ||
+              tx.narration ||
+              (tx.toAccountNumber
+                ? `Transfer to ${tx.toAccountNumber}`
+                : "Transaction"),
+            date:
+              tx.date || tx.createdAt
+                ? new Date(tx.date || tx.createdAt).toLocaleDateString(
+                    "en-IN",
+                    {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    },
+                  )
+                : "",
+            amt: isCredit
+              ? `+ ₹${Number(tx.amount).toLocaleString("en-IN")}`
+              : `- ₹${Number(tx.amount).toLocaleString("en-IN")}`,
+            icon: txIcons[i % txIcons.length],
+            color: isCredit ? "#4ADE80" : txColors[i % txColors.length],
+            type: rawType,
+          };
+        });
+        setRecentTransactions(recent);
+      } else {
+        setRecentTransactions([]);
+      }
+    } catch (err: any) {
+      if (err?.message === "UNAUTHORIZED") {
+        await authService.logout();
+        navigation.replace("Login");
+        return;
+      }
+      // Silent failure - show account card with 0 balance, no crash
+      const mobile = storedMobile || "";
+      setAccounts([
+        {
+          id: "1",
+          type: "SAVINGS ACCOUNT",
+          name: "My Account",
+          balance: "0.00",
+          rawBalance: 0,
+          accNo: mobile ? `**** ${mobile.slice(-4)}` : "**** ****",
+          color: "#002D72",
+          tag: "PRIMARY",
+        },
+      ]);
+      setRecentTransactions([]);
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
+  }, [navigation]);
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const storedName = await AsyncStorage.getItem("user_name");
-        if (storedName) {
-          setUserProfile({
-            firstName: storedName,
-            initials: storedName.charAt(0).toUpperCase(),
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchUserData();
-  }, []);
+    loadData();
+  }, [loadData]);
 
-  // Toggle helper for specific card
-  const toggleBalance = (id: string) => {
-    setVisibleBalances((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
-  };
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadData();
+  }, [loadData]);
+
+  const toggleBalance = (id: string) =>
+    setVisibleBalances((p) => ({ ...p, [id]: !p[id] }));
 
   const renderCard = (item: any) => {
     const isVisible = !!visibleBalances[item.id];
-
     return (
       <View
         key={item.id}
         style={[
           styles.premiumCard,
-          {
-            backgroundColor: item.color,
-            width: IS_WIDE ? WEB_CARD_WIDTH : MOBILE_CARD_WIDTH,
-          },
-          !IS_WIDE && { marginRight: 15 },
+          { backgroundColor: item.color, width: CARD_WIDTH },
+          !IS_WIDE && { marginRight: 16 },
         ]}
       >
-        <View style={styles.cardOverlayCircle} />
-
+        <View style={styles.cardGlow} />
         <View style={styles.cardTopRow}>
-          <View style={styles.cardHeaderInfo}>
+          <View style={{ flex: 1 }}>
             <View style={styles.accountTypeRow}>
               <Text style={styles.cardTagText}>{item.type}</Text>
               <View style={styles.miniTag}>
@@ -162,23 +297,19 @@ const HomeScreen = ({ navigation }: any) => {
           </View>
           <Text style={styles.visaText}>VISA</Text>
         </View>
-
         <View style={styles.cardMidSection}>
-          <View style={styles.chipAndNumber}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 15 }}>
             <View style={styles.goldChip} />
-            <Text style={styles.cardAccNumber}>
-              •••• •••• •••• {item.accNo.split(" ").pop()}
-            </Text>
+            <Text style={styles.cardAccNumber}>{item.accNo}</Text>
           </View>
         </View>
-
         <View style={styles.balanceSection}>
           <View>
             <Text style={styles.balanceLabel}>Available Balance</Text>
             <View style={styles.balanceAmountRow}>
               <Text style={styles.currencySymbol}>₹</Text>
               <Text style={styles.mainBalance}>
-                {isVisible ? item.balance.replace("₹", "") : "••••••••"}
+                {isVisible ? item.balance : "••••••••"}
               </Text>
               <TouchableOpacity
                 onPress={() => toggleBalance(item.id)}
@@ -192,8 +323,7 @@ const HomeScreen = ({ navigation }: any) => {
               </TouchableOpacity>
             </View>
           </View>
-
-          <View style={styles.cardActionContainer}>
+          <View style={{ flexDirection: "row", gap: 10 }}>
             <TouchableOpacity style={styles.cardActionCircle}>
               <CreditCard size={18} color="#FFF" />
             </TouchableOpacity>
@@ -211,8 +341,23 @@ const HomeScreen = ({ navigation }: any) => {
 
   if (isLoading) {
     return (
-      <View style={[styles.outerContainer, { justifyContent: "center" }]}>
+      <View
+        style={[
+          styles.outerContainer,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
         <ActivityIndicator size="large" color="#FFF" />
+        <Text
+          style={{
+            color: "rgba(255,255,255,0.7)",
+            marginTop: 14,
+            fontSize: 14,
+            fontWeight: "600",
+          }}
+        >
+          Loading your account...
+        </Text>
       </View>
     );
   }
@@ -221,6 +366,7 @@ const HomeScreen = ({ navigation }: any) => {
     <View style={styles.outerContainer}>
       <StatusBar barStyle="light-content" backgroundColor="#002D72" />
 
+      {/* Header */}
       <View style={styles.brandingSection}>
         <SafeAreaView edges={["top"]}>
           <View style={styles.header}>
@@ -229,45 +375,55 @@ const HomeScreen = ({ navigation }: any) => {
                 <Text style={styles.avatarText}>{userProfile.initials}</Text>
               </View>
               <View>
-                <Text style={styles.greetingText}>Good Afternoon 👋</Text>
+                <Text style={styles.greetingText}>{getGreeting()}</Text>
                 <Text style={styles.userName}>{userProfile.firstName}</Text>
               </View>
             </View>
             <View style={styles.headerIcons}>
               <TouchableOpacity style={styles.iconCircle}>
-                <Search size={20} color="#002D72" />
+                <Search size={20} color="#FFF" />
               </TouchableOpacity>
               <TouchableOpacity style={styles.iconCircle}>
-                <Bell size={20} color="#002D72" />
+                <Bell size={20} color="#FFF" />
               </TouchableOpacity>
             </View>
           </View>
         </SafeAreaView>
       </View>
 
+      {/* Content */}
       <View style={styles.formContainer}>
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#002D72"
+            />
+          }
         >
+          {/* Account Cards */}
           <View style={styles.cardScrollWrapper}>
             {IS_WIDE ? (
-              <View style={styles.webCardCentering}>
-                {accounts.map((item) => renderCard(item))}
+              <View style={{ alignItems: "center", paddingHorizontal: 20 }}>
+                {accounts.map(renderCard)}
               </View>
             ) : (
               <ScrollView
-                horizontal={true}
+                horizontal
                 showsHorizontalScrollIndicator={false}
-                snapToInterval={MOBILE_CARD_WIDTH + 15}
+                snapToInterval={CARD_WIDTH + 16}
                 decelerationRate="fast"
                 contentContainerStyle={{ paddingHorizontal: 20 }}
               >
-                {accounts.map((item) => renderCard(item))}
+                {accounts.map(renderCard)}
               </ScrollView>
             )}
           </View>
 
+          {/* Quick Actions */}
           <View style={styles.whiteCard}>
             <View style={styles.actionGrid}>
               {[
@@ -293,21 +449,21 @@ const HomeScreen = ({ navigation }: any) => {
                   active: false,
                 },
                 {
-                  label: "Mobile Recharge",
+                  label: "Recharge",
                   icon: Smartphone,
                   color: "#8B5CF6",
                   route: "",
                   active: false,
                 },
                 {
-                  label: "FASTag",
-                  icon: Zap,
-                  color: "#EF4444",
-                  route: "",
-                  active: false,
+                  label: "Set Pin",
+                  icon: Pin,
+                  color: "#783434",
+                  route: "SetPin",
+                  active: true,
                 },
                 {
-                  label: "Investments",
+                  label: "Invest",
                   icon: Globe,
                   color: "#06B6D4",
                   route: "Invest",
@@ -327,14 +483,11 @@ const HomeScreen = ({ navigation }: any) => {
                   route: "",
                   active: false,
                 },
-              ].map((item, index) => (
+              ].map((item, i) => (
                 <TouchableOpacity
-                  key={index}
+                  key={i}
                   disabled={!item.active}
-                  style={[
-                    styles.actionBtn,
-                    !item.active && { opacity: 0.5 }, // Faded state for inactive buttons
-                  ]}
+                  style={[styles.actionBtn, !item.active && { opacity: 0.4 }]}
                   onPress={() => item.route && navigation.navigate(item.route)}
                 >
                   <View
@@ -342,7 +495,7 @@ const HomeScreen = ({ navigation }: any) => {
                       styles.actionIconBox,
                       {
                         backgroundColor: item.active
-                          ? `${item.color}15`
+                          ? `${item.color}18`
                           : "#F1F5F9",
                       },
                     ]}
@@ -365,7 +518,11 @@ const HomeScreen = ({ navigation }: any) => {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.promoBanner}>
+          {/* Promo Banner */}
+          <TouchableOpacity
+            style={styles.promoBanner}
+            onPress={() => navigation.navigate("ReferAndEarn")}
+          >
             <View style={styles.promoContent}>
               <View style={styles.promoIcon}>
                 <Heart size={20} color="#FFF" />
@@ -383,6 +540,7 @@ const HomeScreen = ({ navigation }: any) => {
             </View>
           </TouchableOpacity>
 
+          {/* Recent Activity */}
           <View style={styles.activitySection}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionLabel}>RECENT ACTIVITY</Text>
@@ -392,79 +550,75 @@ const HomeScreen = ({ navigation }: any) => {
                 <Text style={styles.viewAll}>View All</Text>
               </TouchableOpacity>
             </View>
-            {recentTransactions.map((tx, i) => (
-              <View key={i} style={styles.txRow}>
-                <View
-                  style={[
-                    styles.txIconBg,
-                    { backgroundColor: `${tx.color}15` },
-                  ]}
-                >
-                  <tx.icon size={18} color={tx.color} />
-                </View>
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={styles.txTitle}>{tx.title}</Text>
-                  <Text style={styles.txDate}>{tx.date}</Text>
-                </View>
-                <Text
-                  style={[
-                    styles.txAmt,
-                    { color: tx.amt.includes("+") ? "#10B981" : "#1E293B" },
-                  ]}
-                >
-                  {tx.amt}
-                </Text>
+
+            {recentTransactions.length === 0 ? (
+              <View style={styles.emptyTx}>
+                <Wallet size={32} color="#CBD5E1" />
+                <Text style={styles.emptyTxText}>No recent transactions</Text>
               </View>
-            ))}
+            ) : (
+              recentTransactions.map((tx, i) => (
+                <View key={i} style={styles.txRow}>
+                  <View
+                    style={[
+                      styles.txIconBg,
+                      { backgroundColor: `${tx.color}18` },
+                    ]}
+                  >
+                    <tx.icon size={18} color={tx.color} />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.txTitle}>{tx.title}</Text>
+                    {tx.date ? (
+                      <Text style={styles.txDate}>{tx.date}</Text>
+                    ) : null}
+                  </View>
+                  {tx.amt ? (
+                    <Text
+                      style={[
+                        styles.txAmt,
+                        { color: tx.amt.includes("+") ? "#10B981" : "#1E293B" },
+                      ]}
+                    >
+                      {tx.amt}
+                    </Text>
+                  ) : null}
+                </View>
+              ))
+            )}
           </View>
 
           <View style={styles.footerInfo}>
             <ShieldCheck size={14} color="#94A3B8" />
-            <Text style={styles.footerText}>ENCRYPTED & SECURE</Text>
+            <Text style={styles.footerText}>AES-256 ENCRYPTED & SECURE</Text>
           </View>
         </ScrollView>
       </View>
 
+      {/* Bottom Tab */}
       <View style={styles.bottomTab}>
-        <TouchableOpacity
-          style={styles.tabItem}
-          onPress={() => navigation.navigate("Dashboard")}
-        >
-          <Home size={22} color="#002D72" />
-          <Text style={[styles.tabText, { color: "#002D72" }]}>HOME</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.tabItem}
-          onPress={() => navigation.navigate("Payments")}
-        >
-          <Wallet size={22} color="#94A3B8" />
-          <Text style={styles.tabText}>PAYMENTS</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.tabItem}
-          onPress={() => navigation.navigate("Cards")}
-        >
-          <CreditCard size={22} color="#94A3B8" />
-          <Text style={styles.tabText}>CARDS</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.tabItem}
-          onPress={() => navigation.navigate("Invest")}
-        >
-          <Zap size={22} color="#94A3B8" />
-          <Text style={styles.tabText}>INVEST</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.tabItem}
-          onPress={() => navigation.navigate("Profile")}
-        >
-          <LayoutGrid size={22} color="#94A3B8" />
-          <Text style={styles.tabText}>MORE</Text>
-        </TouchableOpacity>
+        {[
+          { label: "HOME", icon: Home, route: "Dashboard", active: true },
+          { label: "PAYMENTS", icon: Wallet, route: "Payments", active: false },
+          { label: "CARDS", icon: CreditCard, route: "Cards", active: false },
+          { label: "INVEST", icon: Zap, route: "Invest", active: false },
+          { label: "MORE", icon: LayoutGrid, route: "Profile", active: false },
+        ].map((tab, i) => (
+          <TouchableOpacity
+            key={i}
+            style={styles.tabItem}
+            onPress={() => navigation.navigate(tab.route)}
+          >
+            <tab.icon size={22} color={tab.active ? "#002D72" : "#94A3B8"} />
+            <Text style={[styles.tabText, tab.active && { color: "#002D72" }]}>
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   outerContainer: { flex: 1, backgroundColor: "#002D72" },
@@ -481,18 +635,18 @@ const styles = StyleSheet.create({
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   avatar: {
-    width: 45,
-    height: 45,
+    width: 46,
+    height: 46,
     borderRadius: 14,
     backgroundColor: "#FBBF24",
     justifyContent: "center",
     alignItems: "center",
   },
-  avatarText: { color: "#002D72", fontWeight: "900" },
+  avatarText: { color: "#002D72", fontWeight: "900", fontSize: 18 },
   userName: { fontSize: 18, fontWeight: "800", color: "#FFF" },
   greetingText: {
     fontSize: 11,
-    color: "rgba(255,255,255,0.7)",
+    color: "rgba(255,255,255,0.65)",
     fontWeight: "600",
   },
   headerIcons: { flexDirection: "row", gap: 8 },
@@ -500,64 +654,53 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.15)",
     justifyContent: "center",
     alignItems: "center",
   },
-  formContainer: {
-    flex: 1,
-    backgroundColor: "#E0F2FE", // Lighter sky blue theme
-    zIndex: 1,
-  },
+  formContainer: { flex: 1, backgroundColor: "#E8F4FD" },
   scrollContent: { paddingBottom: 110, paddingTop: 20 },
   cardScrollWrapper: { paddingVertical: 10 },
-  webCardCentering: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 30,
-    paddingHorizontal: 20,
-  },
   premiumCard: {
     height: 210,
     borderRadius: 32,
     padding: 22,
     justifyContent: "space-between",
     overflow: "hidden",
-    ...Platform.select({
-      web: { boxShadow: "0px 10px 20px rgba(0,0,0,0.2)" },
-      default: { elevation: 10 },
-    }),
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
   },
-  cardOverlayCircle: {
+  cardGlow: {
     position: "absolute",
     top: -40,
     right: -40,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: "rgba(255,255,255,0.07)",
   },
   cardTopRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
   },
-  cardHeaderInfo: { flex: 1 },
   accountTypeRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginBottom: 2,
+    marginBottom: 3,
   },
   cardTagText: {
-    color: "rgba(255,255,255,0.6)",
+    color: "rgba(255,255,255,0.55)",
     fontSize: 11,
     fontWeight: "800",
   },
-  cardNameText: { color: "#FFF", fontSize: 18, fontWeight: "800" },
+  cardNameText: { color: "#FFF", fontSize: 17, fontWeight: "800" },
   visaText: {
     color: "#FFF",
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "900",
     fontStyle: "italic",
     letterSpacing: 1,
@@ -569,22 +712,19 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   miniTagText: { fontSize: 9, fontWeight: "900", color: "#002D72" },
-  cardMidSection: { marginVertical: 10 },
-  chipAndNumber: { flexDirection: "row", alignItems: "center", gap: 15 },
+  cardMidSection: { marginVertical: 8 },
   goldChip: {
     width: 42,
-    height: 32,
+    height: 30,
     backgroundColor: "#FCD34D",
     borderRadius: 6,
-    borderLeftWidth: 2,
-    borderLeftColor: "rgba(0,0,0,0.1)",
   },
   cardAccNumber: {
     color: "#FFF",
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "600",
     letterSpacing: 2,
-    opacity: 0.9,
+    opacity: 0.85,
   },
   balanceSection: {
     flexDirection: "row",
@@ -592,7 +732,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   balanceLabel: {
-    color: "rgba(255,255,255,0.6)",
+    color: "rgba(255,255,255,0.55)",
     fontSize: 12,
     fontWeight: "700",
     marginBottom: 4,
@@ -600,17 +740,16 @@ const styles = StyleSheet.create({
   balanceAmountRow: { flexDirection: "row", alignItems: "center" },
   currencySymbol: {
     color: "#FFF",
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "700",
-    marginRight: 4,
+    marginRight: 3,
   },
-  mainBalance: { color: "#FFF", fontSize: 28, fontWeight: "900" },
-  eyeBtn: { marginLeft: 12, opacity: 0.7 },
-  cardActionContainer: { flexDirection: "row", gap: 10 },
+  mainBalance: { color: "#FFF", fontSize: 26, fontWeight: "900" },
+  eyeBtn: { marginLeft: 10, opacity: 0.75 },
   cardActionCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "rgba(255,255,255,0.12)",
     justifyContent: "center",
     alignItems: "center",
@@ -621,9 +760,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     padding: 18,
     elevation: 2,
-    ...Platform.select({
-      web: { boxShadow: "0px 4px 10px rgba(0,0,0,0.05)" },
-    }),
+    marginTop: 8,
   },
   actionGrid: {
     flexDirection: "row",
@@ -665,26 +802,34 @@ const styles = StyleSheet.create({
   joinBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "rgba(255,255,255,0.12)",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 10,
   },
   joinText: { color: "#FFF", fontSize: 11, fontWeight: "900", marginRight: 4 },
-  activitySection: { paddingHorizontal: 20, paddingBottom: 20 },
+  activitySection: { paddingHorizontal: 20, paddingBottom: 10 },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 18,
+    marginBottom: 16,
     alignItems: "center",
   },
   sectionLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "900",
     color: "#002D72",
     letterSpacing: 0.5,
   },
   viewAll: { fontSize: 13, color: "#3B82F6", fontWeight: "800" },
+  emptyTx: {
+    backgroundColor: "#FFF",
+    borderRadius: 20,
+    padding: 30,
+    alignItems: "center",
+    gap: 10,
+  },
+  emptyTxText: { color: "#94A3B8", fontWeight: "600", fontSize: 14 },
   txRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -720,19 +865,20 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 0,
     width: "100%",
-    height: 85,
+    height: 80,
     backgroundColor: "#FFF",
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    paddingBottom: 15,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingBottom: 10,
     elevation: 25,
     zIndex: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
   },
-  tabItem: { alignItems: "center" },
-  tabText: { fontSize: 10, fontWeight: "900", color: "#94A3B8", marginTop: 5 },
+  tabItem: { alignItems: "center", paddingHorizontal: 8 },
+  tabText: { fontSize: 9, fontWeight: "900", color: "#94A3B8", marginTop: 4 },
 });
-
-export default HomeScreen;

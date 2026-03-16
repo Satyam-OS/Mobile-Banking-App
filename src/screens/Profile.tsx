@@ -49,13 +49,38 @@ export default function Profile({ navigation }: any) {
       route: "PersonalDetails",
       inUse: true,
     },
-    { icon: CreditCard, label: "Linked Accounts", route: "", inUse: false },
-    { icon: Bell, label: "Notifications", route: "", inUse: false },
-    { icon: ShieldCheck, label: "Security Settings", route: "", inUse: false },
-    { icon: Smartphone, label: "Device Management", route: "", inUse: false },
-    { icon: FileText, label: "Statements", route: "", inUse: false },
-    { icon: HelpCircle, label: "Help & Support", route: "", inUse: false },
-    { icon: Settings, label: "App Settings", route: "", inUse: false },
+    {
+      icon: CreditCard,
+      label: "Linked Accounts",
+      route: "LinkedAccounts",
+      inUse: true,
+    },
+    { icon: Bell, label: "Notifications", route: "Notifications", inUse: true },
+    {
+      icon: ShieldCheck,
+      label: "Security Settings",
+      route: "SecuritySettings",
+      inUse: true,
+    },
+    {
+      icon: Smartphone,
+      label: "Device Management",
+      route: "DeviceManagement",
+      inUse: true,
+    },
+    { icon: FileText, label: "Statements", route: "Statements", inUse: true },
+    {
+      icon: HelpCircle,
+      label: "Help & Support",
+      route: "HelpSupport",
+      inUse: true,
+    },
+    {
+      icon: Settings,
+      label: "App Settings",
+      route: "AppSettings",
+      inUse: true,
+    },
   ];
 
   const getInitials = (name: string) => {

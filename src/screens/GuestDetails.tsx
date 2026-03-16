@@ -13,7 +13,7 @@ import {
     View,
 } from "react-native";
 
-const API_BASE_URL = "  https://mobile-banking-app.onrender.com";
+const API_BASE_URL = "  https://banking-app-1ap8.onrender.com";
 
 export default function GuestDetails({ navigation }: any) {
   const [mobile, setMobile] = useState("");
