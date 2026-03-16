@@ -19,5 +19,5 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
     Optional<Account> findByAccountNumber(String accountNumber);
 
-    Optional<Account> findByUserId(UUID userId);  // UUID — matches auth User.id
+    Optional<Account> findByUserId(UUID userId);
 }

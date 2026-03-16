@@ -28,9 +28,6 @@ public class AdminKycService {
     private final PasswordEncoder passwordEncoder;
     private final RestTemplate restTemplate;
 
-    // ✅ No hardcoded URL — reads from yml property which reads from env var.
-    // If ACCOUNT_SERVICE_URL is not set, Spring will fail fast at startup
-    // with a clear error rather than silently calling localhost.
     @Value("${account.service.url}")
     private String accountServiceUrl;
 
@@ -70,10 +67,10 @@ public class AdminKycService {
 
         try {
             createAccountForUser(savedUser.getId());
-            System.out.println("✅ USER + ACCOUNT CREATED | Mobile: " + mobile
+            System.out.println("USER + ACCOUNT CREATED | Mobile: " + mobile
                     + " | CustomerId: " + customerId);
         } catch (Exception e) {
-            System.err.println("❌ ACCOUNT CREATION FAILED for user "
+            System.err.println("ACCOUNT CREATION FAILED FOR USER  "
                     + savedUser.getId() + " (" + mobile + "): " + e.getMessage());
             throw new RuntimeException(
                     "User approved but bank account creation failed. Error: "
@@ -96,7 +93,7 @@ public class AdminKycService {
         kyc.setReviewedAt(LocalDateTime.now());
         kycRepository.save(kyc);
 
-        System.out.println("❌ KYC REJECTED | Mobile: " + mobile + " | Reason: " + reason);
+        System.out.println("KYC REJECTED | Mobile: " + mobile + " | Reason: " + reason);
     }
 
     private void createAccountForUser(UUID userId) {
@@ -116,6 +113,6 @@ public class AdminKycService {
             throw new RuntimeException("Account service returned: " + response.getStatusCode());
         }
 
-        System.out.println("✅ Account created for user: " + userId);
+        System.out.println("Account created for user: " + userId);
     }
 }

@@ -23,10 +23,10 @@ public class Account {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;   // ✅ Primary Key for Account
+    private Long id;
 
     @Column(name = "user_id", nullable = false, unique = true)
-    private UUID userId;  // ✅ Reference to Auth user UUID
+    private UUID userId;
 
     @Column(name = "account_number", nullable = false, unique = true, length = 16)
     private String accountNumber;

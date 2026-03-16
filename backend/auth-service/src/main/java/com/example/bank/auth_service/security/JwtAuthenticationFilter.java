@@ -30,7 +30,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // Public paths — no token needed
         if (path.startsWith("/auth")
                 || path.startsWith("/otp")
                 || path.startsWith("/actuator")
@@ -49,7 +48,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             String token = authHeader.substring(7);
-            // subject = mobile (KYC token) OR UUID (login token)
             String subject = jwtUtil.extractSubject(token);
             String role = jwtUtil.extractRole(token);
 

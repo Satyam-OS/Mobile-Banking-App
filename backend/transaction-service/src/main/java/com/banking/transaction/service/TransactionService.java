@@ -42,7 +42,6 @@ public class TransactionService {
         String fromAccNum = fromAccount.getAccountNumber();
         String toAccNum = request.getToAccountNumber();
 
-        // Deadlock-safe ordered locking
         Account sender, receiver;
         if (fromAccNum.compareTo(toAccNum) < 0) {
             sender = accountRepository.findByAccountNumberWithLock(fromAccNum)
@@ -80,8 +79,6 @@ public class TransactionService {
         transaction.setType(Transaction.TransactionType.TRANSFER);
         transaction.setStatus(Transaction.TransactionStatus.COMPLETED);
 
-        // ✅ FIX: Set a human-readable description so Transactions screen shows meaningful text
-        // Uses the note/description from request if provided, else generates one
         String desc = request.getDescription();
         transaction.setDescription(
                 (desc != null && !desc.isBlank())

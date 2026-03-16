@@ -8,5 +8,5 @@ import java.util.UUID;
 public class KycDecisionRequest {
 
     private UUID kycId;
-    private String decision; // APPROVE or REJECT
+    private String decision;
 }

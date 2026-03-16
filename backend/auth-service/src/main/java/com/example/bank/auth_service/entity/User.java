@@ -25,7 +25,6 @@ public class User {
 
     private String password;
 
-    //  FIX: Added name fields — previously missing, caused "Hello 7878787878" bug
     @Column
     private String firstName;
 

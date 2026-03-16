@@ -8,7 +8,7 @@ spring:
   cloud:
     gateway:
       routes:
-        # ─── Swagger / API Docs (no JWT) ─────────────────────────────────────
+
         - id: auth-api-docs
           uri: ${AUTH_SERVICE_URL}
           predicates:
@@ -30,7 +30,7 @@ spring:
           filters:
             - RewritePath=/transaction/v3/api-docs(?<segment>.*), /v3/api-docs${segment}
 
-        # ─── Block direct internal account creation ───────────────────────────
+
         - id: block-account-internal
           uri: no://op
           predicates:
@@ -38,8 +38,7 @@ spring:
           filters:
             - SetStatus=403
 
-        # ─── Auth user dashboard (JWT REQUIRED) ──────────────────────────────
-        # Must be BEFORE the general /auth/** route — first match wins
+
         - id: auth-user-protected
           uri: ${AUTH_SERVICE_URL}
           predicates:
@@ -48,7 +47,7 @@ spring:
             - StripPrefix=1
             - JwtAuthenticationFilter
 
-        # ─── Auth: login, reset-password (public, no JWT) ────────────────────
+
         - id: auth-service
           uri: ${AUTH_SERVICE_URL}
           predicates:
@@ -56,15 +55,13 @@ spring:
           filters:
             - StripPrefix=1
 
-        # ─── OTP routes (public, no JWT) ─────────────────────────────────────
-        # OtpController is @RequestMapping("/otp") on auth-service — no StripPrefix
+
         - id: otp-service
           uri: ${AUTH_SERVICE_URL}
           predicates:
             - Path=/otp/**
 
-        # ─── KYC routes (JWT REQUIRED) ───────────────────────────────────────
-        # KycController is @RequestMapping("/kyc") on auth-service — no StripPrefix
+
         - id: kyc-service
           uri: ${AUTH_SERVICE_URL}
           predicates:
@@ -72,7 +69,7 @@ spring:
           filters:
             - JwtAuthenticationFilter
 
-        # ─── Account Service (JWT REQUIRED) ──────────────────────────────────
+
         - id: account-service
           uri: ${ACCOUNT_SERVICE_URL}
           predicates:
@@ -81,7 +78,7 @@ spring:
             - StripPrefix=1
             - JwtAuthenticationFilter
 
-        # ─── Transaction Service (JWT REQUIRED) ──────────────────────────────
+
         - id: transaction-service
           uri: ${TRANSACTION_SERVICE_URL}
           predicates:
@@ -90,7 +87,7 @@ spring:
             - StripPrefix=1
             - JwtAuthenticationFilter
 
-# ─── Swagger UI aggregation ───────────────────────────────────────────────────
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

@@ -21,7 +21,7 @@ public class TransactionController {
 
     @PostMapping("/transfer")
     public ResponseEntity<TransactionResponse> transfer(
-            @RequestHeader("X-User-Id") String userIdStr,   // UUID string from gateway
+            @RequestHeader("X-User-Id") String userIdStr,
             @Valid @RequestBody TransferRequest request) {
         UUID userId = UUID.fromString(userIdStr);
         TransactionResponse response = transactionService.transfer(userId, request);

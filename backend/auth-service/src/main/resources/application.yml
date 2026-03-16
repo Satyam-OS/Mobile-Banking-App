@@ -28,8 +28,6 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
-# ✅ No hardcoded fallback — ACCOUNT_SERVICE_URL must be set as an env var on Render.
-# This prevents silent misconfiguration where localhost would be used in production.
 account:
   service:
     url: ${ACCOUNT_SERVICE_URL}

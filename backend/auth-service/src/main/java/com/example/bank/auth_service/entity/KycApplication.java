@@ -22,29 +22,28 @@ public class KycApplication {
     @Column(nullable = false, unique = true)
     private String mobile;
 
-    // PERSONAL
+
     private String fullName;
     private String email;
     private LocalDate dob;
     private String gender;
 
-    // ADDRESS
+
     private String addressLine1;
     private String city;
     private String state;
     private String pincode;
 
-    // DOCUMENTS
+
     private String panNumber;
     private String aadharNumber;
     private String panDocPath;
     private String aadharFrontPath;
     private String aadharBackPath;
 
-    // ACCOUNT
+
     private String accountType;
 
-    //STATUS
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private KycStatus status;

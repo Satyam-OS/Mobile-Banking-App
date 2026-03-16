@@ -12,7 +12,6 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @OpenAPIDefinition(
         info = @Info(title = "Bank Auth Service API", version = "1.0"),
-        // ✅ Uses env var — no hardcoded URL
         servers = @Server(url = "${GATEWAY_URL}", description = "API Gateway"),
         security = @SecurityRequirement(name = "bearerAuth")
 )

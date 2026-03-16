@@ -41,9 +41,8 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
 
             try {
                 Claims claims = validateToken(token);
-                String userId = claims.getSubject(); // UUID string
+                String userId = claims.getSubject();
 
-                // Reject KYC-only tokens from hitting account/transaction services
                 Boolean kycOnly = claims.get("kycOnly", Boolean.class);
                 if (Boolean.TRUE.equals(kycOnly)) {
                     return onError(exchange, "KYC token cannot access this service", HttpStatus.FORBIDDEN);

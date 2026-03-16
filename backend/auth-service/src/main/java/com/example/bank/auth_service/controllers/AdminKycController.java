@@ -19,7 +19,6 @@ public class AdminKycController {
     private final AdminKycService adminKycService;
     private final KycRepository kycRepository;
 
-    // FETCH PENDING KYCs
     @GetMapping("/pending")
     public List<KycApplication> getPendingKycs() {
         return kycRepository.findByStatus(KycStatus.SUBMITTED);

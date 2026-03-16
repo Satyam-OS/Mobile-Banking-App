@@ -36,7 +36,6 @@ public class AuthService {
                 user.getRole().name()
         );
 
-        // ✅ FIX: Now returns firstName and email so frontend shows real name
         return new LoginResponse(
                 token,
                 user.getRole().name(),

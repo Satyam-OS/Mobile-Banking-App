@@ -17,10 +17,7 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
     }
 
-    /**
-     * Full login token — issued after KYC approval + successful login.
-     * sub = user UUID (used by account-service and transaction-service via X-User-Id header)
-     */
+
     public String generateToken(String userId, String customerId, String role) {
         return Jwts.builder()
                 .setSubject(userId)
@@ -32,11 +29,7 @@ public class JwtUtil {
                 .compact();
     }
 
-    /**
-     * KYC-only token — issued after OTP verify, before user account exists.
-     * sub = mobile number (used by KycService to identify who is submitting KYC)
-     * kycOnly = true prevents this token from being used on account/transaction services
-     */
+
     public String generateKycToken(String mobile) {
         return Jwts.builder()
                 .setSubject(mobile)

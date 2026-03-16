@@ -16,21 +16,12 @@ public class UserController {
 
     private final UserRepository userRepository;
 
-    /**
-     * FIX: Previously returned a static "dashboard accessed" message.
-     * Now returns real user data using the X-User-Id header injected by the API Gateway.
-     *
-     * The gateway JWT filter extracts the UUID from the Bearer token and injects it
-     * as the X-User-Id header before forwarding to this service.
-     *
-     * The /auth/user/** route in application.yml must have JwtAuthenticationFilter applied
-     * (see api-gateway application.yml fix) so this header is always present.
-     */
+
     @GetMapping("/dashboard")
     public ResponseEntity<?> dashboard(
             @RequestHeader(value = "X-User-Id", required = false) String userIdStr) {
 
-        // Fallback if called without gateway (e.g. direct service call in dev)
+
         if (userIdStr == null || userIdStr.isBlank()) {
             return ResponseEntity.ok(Map.of("message", "User dashboard accessed"));
         }

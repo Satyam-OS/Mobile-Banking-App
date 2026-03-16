@@ -34,7 +34,7 @@ public class KycService {
 
         kyc.setMobile(mobile);
 
-        // PERSONAL
+        // PERSONAL DETAILS
         kyc.setFullName(req.getFullName());
         kyc.setEmail(req.getEmail());
         kyc.setDob(req.getDob());
