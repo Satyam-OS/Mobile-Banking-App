@@ -11,11 +11,13 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Map;
 
 /**
- * Internal HTTP client used by transaction-service to call auth-service.
+ * Internal HTTP client — transaction-service → auth-service.
  *
- * The verify-pin endpoint on auth-service requires X-User-Id header
- * (same as all authenticated routes — the gateway would inject it for
- * external calls, but for internal service-to-service we inject it directly).
+ * Calls the /internal/verify-pin endpoint which is permit-all in auth-service's
+ * SecurityConfig (no JWT required). The endpoint is protected by a shared
+ * X-Internal-Secret header so it cannot be called by anyone without the secret.
+ *
+ * Both services must have the same INTERNAL_SERVICE_SECRET env var set on Render.
  */
 @Component
 @RequiredArgsConstructor
@@ -28,25 +30,35 @@ public class AuthServiceClient {
     private String authServiceUrl;
 
     /**
-     * Verifies a user's 4-digit transaction PIN by calling auth-service.
+     * Shared secret read from INTERNAL_SERVICE_SECRET env var.
+     * Must match the value configured in auth-service.
+     */
+    @Value("${internal.service.secret:INTERNAL_SECRET_CHANGE_ME}")
+    private String internalServiceSecret;
+
+    /**
+     * Verifies the user's 4-digit transaction PIN via auth-service.
+     * Uses the internal endpoint — no JWT needed, authenticated by shared secret.
      *
-     * @param userId UUID string of the user (from X-User-Id header)
-     * @param pin    Raw 4-digit PIN entered by user
+     * @param userId UUID string of the user
+     * @param pin    Raw 4-digit PIN entered by the user
      * @throws SecurityException if PIN is wrong, not set, or user is rate-limited
      */
     public void verifyTransactionPin(String userId, String pin) {
-        String url = authServiceUrl + "/user/verify-pin";
+        // Use the internal endpoint — no JWT, protected by X-Internal-Secret header
+        String url = authServiceUrl + "/internal/verify-pin";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        // Inject X-User-Id so auth-service can identify the user
+        headers.set("X-Internal-Secret", internalServiceSecret);
         headers.set("X-User-Id", userId);
 
         Map<String, String> body = Map.of("pin", pin);
         HttpEntity<Map<String, String>> entity = new HttpEntity<>(body, headers);
 
         try {
-            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    url, HttpMethod.POST, entity, Map.class);
 
             if (response.getStatusCode() != HttpStatus.OK) {
                 throw new SecurityException("Transaction PIN verification failed");
@@ -57,10 +69,12 @@ public class AuthServiceClient {
                 throw new SecurityException("Incorrect transaction PIN");
             }
 
+            log.info("PIN verified successfully for userId={}", userId);
+
         } catch (HttpClientErrorException.Unauthorized e) {
             throw new SecurityException("Incorrect transaction PIN");
         } catch (HttpClientErrorException.Forbidden e) {
-            // Covers: PIN not set, rate-limited
+            // PIN not set, rate-limited, or bad secret
             String msg = extractErrorMessage(e);
             throw new SecurityException(msg);
         } catch (SecurityException e) {
@@ -73,15 +87,13 @@ public class AuthServiceClient {
 
     private String extractErrorMessage(HttpClientErrorException e) {
         try {
-            // Response body is JSON like { "error": "..." }
             String body = e.getResponseBodyAsString();
-            // Simple extraction without importing Jackson here
             if (body.contains("\"error\"")) {
-                int start = body.indexOf("\"error\"") + 9;
-                int valueStart = body.indexOf("\"", start) + 1;
-                int valueEnd = body.indexOf("\"", valueStart);
-                if (valueStart > 0 && valueEnd > valueStart) {
-                    return body.substring(valueStart, valueEnd);
+                int start   = body.indexOf("\"error\"") + 9;
+                int valStart = body.indexOf("\"", start) + 1;
+                int valEnd   = body.indexOf("\"", valStart);
+                if (valStart > 0 && valEnd > valStart) {
+                    return body.substring(valStart, valEnd);
                 }
             }
         } catch (Exception ignored) {}

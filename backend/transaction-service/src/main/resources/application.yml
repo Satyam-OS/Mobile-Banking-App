@@ -31,11 +31,16 @@ spring:
 jwt:
   secret: ${JWT_SECRET:BANKING_APP_SECRET_KEY_1234567890}
 
-# Internal auth-service URL for PIN verification (service-to-service call)
-# Set AUTH_SERVICE_URL env var on your deployment platform (e.g., Render)
+# URL of auth-service for internal PIN verification
 auth:
   service:
     url: ${AUTH_SERVICE_URL:http://localhost:8081}
+
+# Shared secret for internal service-to-service calls.
+# Must match the INTERNAL_SERVICE_SECRET set on auth-service.
+internal:
+  service:
+    secret: ${INTERNAL_SERVICE_SECRET:INTERNAL_SECRET_CHANGE_ME}
 
 management:
   endpoints:

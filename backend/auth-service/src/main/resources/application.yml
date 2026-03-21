@@ -35,6 +35,13 @@ account:
 jwt:
   secret: ${JWT_SECRET}
 
+# Shared secret for internal service-to-service calls (no JWT needed).
+# Set INTERNAL_SERVICE_SECRET env var to the same value on both
+# auth-service and transaction-service Render deployments.
+internal:
+  service:
+    secret: ${INTERNAL_SERVICE_SECRET:INTERNAL_SECRET_CHANGE_ME}
+
 management:
   endpoints:
     web:
