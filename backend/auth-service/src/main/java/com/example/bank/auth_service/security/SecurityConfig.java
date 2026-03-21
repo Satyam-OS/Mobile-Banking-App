@@ -39,11 +39,14 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"
                         ).permitAll()
 
-                        // INTERNAL — service-to-service calls (no JWT).
-                        // Protected by X-Internal-Secret header in the controller itself.
+                        // INTERNAL — service-to-service PIN verification.
+                        // Called by transaction-service with X-User-Id header.
+                        // No JWT available in service-to-service calls.
+                        // Security is enforced in the controller via X-User-Id presence check.
+                        .requestMatchers("/user/verify-pin").permitAll()
                         .requestMatchers("/internal/**").permitAll()
 
-                        // /user/** requires JWT authentication (injected by gateway)
+                        // /user/** (other endpoints) requires JWT authentication
                         .requestMatchers("/user/**").authenticated()
 
                         // KYC submission requires USER role
