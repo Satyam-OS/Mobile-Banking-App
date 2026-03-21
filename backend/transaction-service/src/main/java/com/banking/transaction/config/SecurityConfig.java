@@ -15,16 +15,11 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/**",
-                                        "/swagger-ui/**",
-                                        "/v3/api-docs/**").permitAll()
                         .anyRequest().permitAll()
-                        // Allow transaction-service to call this without JWT
-                        .requestMatchers("/user/verify-pin").permitAll()
                 );
-
         return http.build();
     }
 }
