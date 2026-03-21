@@ -18,14 +18,6 @@ const { width: windowWidth } = Dimensions.get("window");
 const IS_WIDE = windowWidth > 500;
 const CARD_WIDTH = IS_WIDE ? Math.min(windowWidth * 0.88, 420) : windowWidth * 0.85;
 
-const MOCK_ACCOUNTS = [
-  { id: "1", type: "SAVINGS ACCOUNT", name: "Savings Account", balance: "0.00", rawBalance: 0, accNo: "**** 0000", color: "#002D72", tag: "PRIMARY" },
-];
-
-const MOCK_TRANSACTIONS = [
-  { title: "No transactions yet", date: "", amt: "", icon: Wallet, color: "#94A3B8", type: "info" },
-];
-
 const getGreeting = () => {
   const h = new Date().getHours();
   if (h < 12) return "Good Morning 🌅";
@@ -34,6 +26,7 @@ const getGreeting = () => {
 };
 
 export default function HomeScreen({ navigation }: any) {
+  // FIX: Default balances to VISIBLE (true) so balance shows on load without tapping the eye
   const [visibleBalances, setVisibleBalances] = useState<{ [key: string]: boolean }>({});
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,12 +52,9 @@ export default function HomeScreen({ navigation }: any) {
       const [accResult, txResult, dashResult] = await Promise.allSettled([
         accountService.getAccountDetails(),
         transactionService.getTransactionHistory(),
-        authService.getUserDashboard(), // ✅ FIX: Added — fetches real name from DB
+        authService.getUserDashboard(),
       ]);
 
-      // ✅ FIX: Use dashboard response as the authoritative source for user name
-      // The login response now sends firstName, but on subsequent app opens
-      // we refresh it from the dashboard endpoint
       if (dashResult.status === "fulfilled" && dashResult.value) {
         const dash = dashResult.value;
         const name = dash.firstName || dash.name || dash.mobile;
@@ -79,7 +69,6 @@ export default function HomeScreen({ navigation }: any) {
       if (accResult.status === "fulfilled" && accResult.value) {
         const raw = accResult.value;
 
-        // Handle different response shapes
         const list: any[] = Array.isArray(raw)
           ? raw
           : raw.accounts
@@ -95,8 +84,9 @@ export default function HomeScreen({ navigation }: any) {
           const TAGS = ["PRIMARY", "BUSINESS", "INVEST", "SAVINGS"];
           const mapped = list.map((acc: any, i: number) => {
             const bal = acc.balance ?? acc.availableBalance ?? acc.currentBalance ?? 0;
+            const id = acc.id || acc.accountId || acc.accountNumber || String(i + 1);
             return {
-              id: acc.id || acc.accountId || acc.accountNumber || String(i + 1),
+              id,
               type: (acc.accountType || acc.type || "SAVINGS ACCOUNT").toUpperCase(),
               name: acc.accountName || acc.name || acc.holderName || "My Account",
               balance: Number(bal).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
@@ -109,17 +99,19 @@ export default function HomeScreen({ navigation }: any) {
             };
           });
           setAccounts(mapped);
+          // FIX: Mark all loaded accounts as visible by default
+          const defaultVisible: { [key: string]: boolean } = {};
+          mapped.forEach((a) => { defaultVisible[a.id] = true; });
+          setVisibleBalances(defaultVisible);
           accountsLoaded = true;
-          // ✅ NOTE: We deliberately do NOT extract name from account response here.
-          // Name now comes from dashResult (getUserDashboard) above, which is more reliable.
         }
       }
 
-      // If no accounts loaded, show a placeholder card with 0 balance
       if (!accountsLoaded) {
         const mobile = storedMobile || "";
+        const fallbackId = "1";
         setAccounts([{
-          id: "1",
+          id: fallbackId,
           type: "SAVINGS ACCOUNT",
           name: "My Account",
           balance: "0.00",
@@ -128,12 +120,13 @@ export default function HomeScreen({ navigation }: any) {
           color: "#002D72",
           tag: "PRIMARY",
         }]);
+        // FIX: Also default the fallback card to visible
+        setVisibleBalances({ [fallbackId]: true });
       }
 
       // Process transactions
       if (txResult.status === "fulfilled" && Array.isArray(txResult.value) && txResult.value.length > 0) {
         const recent = txResult.value.slice(0, 5).map((tx: any, i: number) => {
-          // ✅ FIX: Backend returns CREDIT/DEBIT/TRANSFER uppercase — normalise
           const rawType = (tx.type || tx.transactionType || "").toUpperCase();
           const isCredit = rawType === "CREDIT" || rawType === "DEPOSIT";
           return {
@@ -163,14 +156,15 @@ export default function HomeScreen({ navigation }: any) {
         navigation.replace("Login");
         return;
       }
-      // Silent failure - show account card with 0 balance, no crash
       const mobile = storedMobile || "";
+      const fallbackId = "1";
       setAccounts([{
-        id: "1", type: "SAVINGS ACCOUNT", name: "My Account",
+        id: fallbackId, type: "SAVINGS ACCOUNT", name: "My Account",
         balance: "0.00", rawBalance: 0,
         accNo: mobile ? `**** ${mobile.slice(-4)}` : "**** ****",
         color: "#002D72", tag: "PRIMARY",
       }]);
+      setVisibleBalances({ [fallbackId]: true });
       setRecentTransactions([]);
     } finally {
       setIsLoading(false);
@@ -189,7 +183,7 @@ export default function HomeScreen({ navigation }: any) {
     setVisibleBalances((p) => ({ ...p, [id]: !p[id] }));
 
   const renderCard = (item: any) => {
-    const isVisible = !!visibleBalances[item.id];
+    const isVisible = visibleBalances[item.id] !== false; // default true
     return (
       <View key={item.id} style={[styles.premiumCard, { backgroundColor: item.color, width: CARD_WIDTH }, !IS_WIDE && { marginRight: 16 }]}>
         <View style={styles.cardGlow} />
