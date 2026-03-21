@@ -21,6 +21,8 @@ public class SecurityConfig {
                                         "/swagger-ui/**",
                                         "/v3/api-docs/**").permitAll()
                         .anyRequest().permitAll()
+                        // Allow transaction-service to call this without JWT
+                        .requestMatchers("/user/verify-pin").permitAll()
                 );
 
         return http.build();
