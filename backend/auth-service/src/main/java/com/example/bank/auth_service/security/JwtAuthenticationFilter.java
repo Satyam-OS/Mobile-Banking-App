@@ -30,11 +30,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
+        // Public paths — no token needed (pass through without JWT check)
         if (path.startsWith("/auth")
                 || path.startsWith("/otp")
                 || path.startsWith("/actuator")
                 || path.startsWith("/swagger-ui")
-                || path.startsWith("/v3/api-docs")) {
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/internal")          // service-to-service internal calls
+                || path.equals("/user/verify-pin")) {    // called by transaction-service (no JWT)
             filterChain.doFilter(request, response);
             return;
         }
