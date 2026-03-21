@@ -22,7 +22,15 @@ public class TransferRequest {
     @DecimalMin(value = "0.01", message = "Amount must be greater than 0")
     private BigDecimal amount;
 
-
+    /** Frontend sends "note"; @JsonAlias maps it to description. */
     @JsonAlias("note")
     private String description;
+
+    /**
+     * 4-digit transaction PIN entered by the user.
+     * Verified against auth-service before the transfer executes.
+     * NOT stored — used only for verification in this request.
+     */
+    @NotBlank(message = "Transaction PIN is required")
+    private String transactionPin;
 }

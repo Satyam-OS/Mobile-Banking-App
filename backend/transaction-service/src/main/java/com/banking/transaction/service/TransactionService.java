@@ -1,5 +1,6 @@
 package com.banking.transaction.service;
 
+import com.banking.transaction.client.AuthServiceClient;
 import com.banking.transaction.dto.TransactionResponse;
 import com.banking.transaction.dto.TransferRequest;
 import com.banking.transaction.entity.Account;
@@ -26,12 +27,20 @@ public class TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
+    private final AuthServiceClient authServiceClient;
     private static final SecureRandom random = new SecureRandom();
 
     @Transactional(isolation = Isolation.SERIALIZABLE, rollbackFor = Exception.class)
     public TransactionResponse transfer(UUID userId, TransferRequest request) {
         log.info("Starting transfer for user {} to account {}", userId, request.getToAccountNumber());
 
+        // ── Step 1: Verify transaction PIN via auth-service ──────────────────
+        // This call is made BEFORE acquiring any DB locks, so a bad PIN
+        // returns immediately without touching account balances.
+        authServiceClient.verifyTransactionPin(userId.toString(), request.getTransactionPin());
+        log.info("Transaction PIN verified for user {}", userId);
+
+        // ── Step 2: Load sender account ──────────────────────────────────────
         Account fromAccount = accountRepository.findByUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Sender account not found"));
 
@@ -40,21 +49,23 @@ public class TransactionService {
         }
 
         String fromAccNum = fromAccount.getAccountNumber();
-        String toAccNum = request.getToAccountNumber();
+        String toAccNum   = request.getToAccountNumber();
 
+        // ── Step 3: Deadlock-safe ordered locking ────────────────────────────
         Account sender, receiver;
         if (fromAccNum.compareTo(toAccNum) < 0) {
-            sender = accountRepository.findByAccountNumberWithLock(fromAccNum)
+            sender   = accountRepository.findByAccountNumberWithLock(fromAccNum)
                     .orElseThrow(() -> new IllegalArgumentException("Sender account not found"));
             receiver = accountRepository.findByAccountNumberWithLock(toAccNum)
                     .orElseThrow(() -> new IllegalArgumentException("Recipient account not found"));
         } else {
             receiver = accountRepository.findByAccountNumberWithLock(toAccNum)
                     .orElseThrow(() -> new IllegalArgumentException("Recipient account not found"));
-            sender = accountRepository.findByAccountNumberWithLock(fromAccNum)
+            sender   = accountRepository.findByAccountNumberWithLock(fromAccNum)
                     .orElseThrow(() -> new IllegalArgumentException("Sender account not found"));
         }
 
+        // ── Step 4: Business validations ─────────────────────────────────────
         if (sender.getStatus() != Account.AccountStatus.ACTIVE) {
             throw new IllegalStateException("Sender account is not active");
         }
@@ -65,6 +76,7 @@ public class TransactionService {
             throw new IllegalArgumentException("Insufficient balance");
         }
 
+        // ── Step 5: Execute transfer ─────────────────────────────────────────
         sender.setBalance(sender.getBalance().subtract(request.getAmount()));
         receiver.setBalance(receiver.getBalance().add(request.getAmount()));
 
@@ -85,7 +97,6 @@ public class TransactionService {
                         ? desc
                         : "Transfer to " + receiver.getAccountNumber()
         );
-
         transaction.setReferenceNumber(generateReferenceNumber());
 
         Transaction saved = transactionRepository.save(transaction);

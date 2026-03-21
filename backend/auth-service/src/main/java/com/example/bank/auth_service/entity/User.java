@@ -31,6 +31,14 @@ public class User {
     @Column
     private String email;
 
+    /**
+     * BCrypt-hashed 4-digit transaction PIN.
+     * Stored as nullable — user must explicitly set it in Security Settings.
+     * Required for every money transfer.
+     */
+    @Column(name = "transaction_pin")
+    private String transactionPin;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;

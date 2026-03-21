@@ -16,6 +16,7 @@ import PersonalDetails from "../screens/PersonalDetails";
 import Profile from "../screens/Profile";
 import Register from "../screens/Register";
 import SetPassword from "../screens/SetPassword";
+import SetTransactionPin from "../screens/SetTransactionPin";
 import SplashScreen from "../screens/SplashScreen";
 import Transactions from "../screens/Transactions";
 import Transfer from "../screens/Transfer";
@@ -40,6 +41,8 @@ export default function AppNavigator() {
       <Stack.Screen name="Invest" component={InvestDashboard} />
       <Stack.Screen name="Profile" component={Profile} />
       <Stack.Screen name="PersonalDetails" component={PersonalDetails} />
+      {/* New: Transaction PIN setup screen, accessible from Profile → Security Settings */}
+      <Stack.Screen name="SetTransactionPin" component={SetTransactionPin} />
       <Stack.Screen name="AdminDashboard" component={AdminDashboard} />
       <Stack.Screen name="Register" component={Register} />
       <Stack.Screen name="GuestExplore" component={GuestExplore} />

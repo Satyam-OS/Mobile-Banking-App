@@ -25,6 +25,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
+    /**
+     * Handles failed PIN verification — returns 403 Forbidden so frontend
+     * can show a clear "Incorrect PIN" message without falling into the
+     * generic error handler.
+     */
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<Map<String, String>> handleSecurity(SecurityException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGeneral(Exception ex) {
         Map<String, String> error = new HashMap<>();
