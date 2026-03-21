@@ -14,6 +14,7 @@ import OTPSuccess from "../screens/OTPSuccess";
 import Payments from "../screens/Payments";
 import PersonalDetails from "../screens/PersonalDetails";
 import Profile from "../screens/Profile";
+import ReferEarn from "../screens/ReferEarn";
 import Register from "../screens/Register";
 import SetPassword from "../screens/SetPassword";
 import SetTransactionPin from "../screens/SetTransactionPin";
@@ -29,27 +30,27 @@ export default function AppNavigator() {
       initialRouteName="Splash"
       screenOptions={{ headerShown: false }}
     >
-      <Stack.Screen name="Splash" component={SplashScreen} />
-      <Stack.Screen name="Login" component={Login} />
-      <Stack.Screen name="SetPassword" component={SetPassword} />
-      <Stack.Screen name="Dashboard" component={Index} />
-      <Stack.Screen name="BalanceSecurity" component={BalanceSecurity} />
-      <Stack.Screen name="Cards" component={Cards} />
-      <Stack.Screen name="Payments" component={Payments} />
-      <Stack.Screen name="Transfer" component={Transfer} />
-      <Stack.Screen name="Transactions" component={Transactions} />
-      <Stack.Screen name="Invest" component={InvestDashboard} />
-      <Stack.Screen name="Profile" component={Profile} />
-      <Stack.Screen name="PersonalDetails" component={PersonalDetails} />
-      {/* New: Transaction PIN setup screen, accessible from Profile → Security Settings */}
+      <Stack.Screen name="Splash"           component={SplashScreen} />
+      <Stack.Screen name="Login"            component={Login} />
+      <Stack.Screen name="SetPassword"      component={SetPassword} />
+      <Stack.Screen name="Dashboard"        component={Index} />
+      <Stack.Screen name="BalanceSecurity"  component={BalanceSecurity} />
+      <Stack.Screen name="Cards"            component={Cards} />
+      <Stack.Screen name="Payments"         component={Payments} />
+      <Stack.Screen name="Transfer"         component={Transfer} />
+      <Stack.Screen name="Transactions"     component={Transactions} />
+      <Stack.Screen name="Invest"           component={InvestDashboard} />
+      <Stack.Screen name="Profile"          component={Profile} />
+      <Stack.Screen name="PersonalDetails"  component={PersonalDetails} />
       <Stack.Screen name="SetTransactionPin" component={SetTransactionPin} />
-      <Stack.Screen name="AdminDashboard" component={AdminDashboard} />
-      <Stack.Screen name="Register" component={Register} />
-      <Stack.Screen name="GuestExplore" component={GuestExplore} />
-      <Stack.Screen name="GuestOtp" component={GuestOtp} />
-      <Stack.Screen name="OTPSuccess" component={OTPSuccess} />
-      <Stack.Screen name="KYCOnboarding" component={KYCOnboarding} />
-      <Stack.Screen name="KYCSuccess" component={KYCSuccess} />
+      <Stack.Screen name="ReferEarn"        component={ReferEarn} />
+      <Stack.Screen name="AdminDashboard"   component={AdminDashboard} />
+      <Stack.Screen name="Register"         component={Register} />
+      <Stack.Screen name="GuestExplore"     component={GuestExplore} />
+      <Stack.Screen name="GuestOtp"         component={GuestOtp} />
+      <Stack.Screen name="OTPSuccess"       component={OTPSuccess} />
+      <Stack.Screen name="KYCOnboarding"    component={KYCOnboarding} />
+      <Stack.Screen name="KYCSuccess"       component={KYCSuccess} />
     </Stack.Navigator>
   );
 }

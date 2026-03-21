@@ -1,71 +1,27 @@
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import React from "react";
 import {
-  Dimensions,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+  Dimensions, SafeAreaView, ScrollView, StatusBar,
+  StyleSheet, Text, TouchableOpacity, View,
 } from "react-native";
+import { ArrowLeft, TrendingUp, TrendingDown, Info } from "lucide-react-native";
 
 const { width } = Dimensions.get("window");
 
-// 1. Refined CategoryChip
-interface ChipProps {
-  icon: any;
-  label: string;
-  active?: boolean;
-  inUse?: boolean; // Added inUse prop
-}
-
-const CategoryChip = ({ icon, label, active, inUse = true }: ChipProps) => (
+interface ChipProps { label: string; active?: boolean; inUse?: boolean; }
+const CategoryChip = ({ label, active, inUse = false }: ChipProps) => (
   <TouchableOpacity
-    style={[
-      styles.chip,
-      active && styles.chipActive,
-      !inUse && { opacity: 0.35 }, // Faded state
-    ]}
-    disabled={!inUse} // Disable interaction if not in use
+    style={[styles.chip, active && styles.chipActive, !inUse && { opacity: 0.4 }]}
+    disabled={!inUse}
   >
-    <MaterialCommunityIcons
-      name={icon}
-      size={18}
-      color={active ? "#FFF" : "#0EA5E9"}
-    />
-    <Text style={[styles.chipText, active && styles.chipTextActive]}>
-      {label}
-    </Text>
+    <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
   </TouchableOpacity>
 );
 
-// 2. High-Fidelity Investment Item
-interface InvestProps {
-  name: string;
-  ticker: string;
-  price: string;
-  change: string;
-  up: boolean;
-  inUse?: boolean; // Added inUse prop
+interface InvestItemProps {
+  name: string; ticker: string; price: string; change: string; up: boolean;
 }
-
-const InvestItem = ({
-  name,
-  ticker,
-  price,
-  change,
-  up,
-  inUse = true,
-}: InvestProps) => (
-  <TouchableOpacity
-    style={[
-      styles.menuItem,
-      !inUse && { opacity: 0.35 }, // Faded state
-    ]}
-    disabled={!inUse} // Disable interaction if not in use
-  >
+const InvestItem = ({ name, ticker, price, change, up }: InvestItemProps) => (
+  <View style={[styles.menuItem, { opacity: 0.4 }]}>
     <View style={styles.menuIconBox}>
       <Text style={styles.tickerIconText}>{ticker[0]}</Text>
     </View>
@@ -75,20 +31,11 @@ const InvestItem = ({
     </View>
     <View style={styles.priceContainer}>
       <Text style={styles.itemPrice}>{price}</Text>
-      <View
-        style={[
-          styles.changeBadge,
-          { backgroundColor: up ? "#DCFCE7" : "#FEE2E2" },
-        ]}
-      >
-        <Text
-          style={[styles.changeText, { color: up ? "#15803D" : "#B91C1C" }]}
-        >
-          {change}
-        </Text>
+      <View style={[styles.changeBadge, { backgroundColor: up ? "#DCFCE7" : "#FEE2E2" }]}>
+        <Text style={[styles.changeText, { color: up ? "#15803D" : "#B91C1C" }]}>{change}</Text>
       </View>
     </View>
-  </TouchableOpacity>
+  </View>
 );
 
 const InvestDashboard = ({ navigation }: any) => {
@@ -96,279 +43,120 @@ const InvestDashboard = ({ navigation }: any) => {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
 
-      {/* FIXED HEADER & PORTFOLIO */}
       <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => navigation?.goBack()}
-          >
-            <Feather name="chevron-left" size={28} color="#FFF" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Investments</Text>
-          <TouchableOpacity style={styles.searchBtn}>
-            <Feather name="search" size={20} color="#FFF" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.portfolioContainer}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <ArrowLeft size={24} color="#FFF" />
+        </TouchableOpacity>
+        <View style={styles.portfolioContent}>
           <Text style={styles.portfolioLabel}>Portfolio Balance</Text>
-          <Text style={styles.portfolioValue}>₹8,24,850.42</Text>
-          <View style={styles.statsRow}>
-            <View style={styles.trendPill}>
-              <Feather name="trending-up" size={14} color="#FFF" />
-              <Text style={styles.statsText}>+5.2%</Text>
-            </View>
-            <Text style={styles.statsSubText}>vs last month</Text>
+          <Text style={styles.portfolioValue}>₹0.00</Text>
+          <View style={styles.changeChip}>
+            <TrendingUp size={14} color="#FFF" />
+            <Text style={styles.changeChipText}>Coming Soon</Text>
           </View>
         </View>
+        <View style={{ width: 40 }} />
       </View>
 
-      {/* FIXED ASSET CLASSES (DOES NOT SCROLL VERTICALLY) */}
-      <View style={styles.fixedAssetsContainer}>
-        <Text style={styles.sectionLabel}>Asset Classes</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.chipScroll}
-          contentContainerStyle={{ paddingLeft: 24, paddingRight: 24 }}
-        >
-          <CategoryChip icon="trending-up" label="Stocks" active inUse={true} />
-          <CategoryChip icon="chart-line" label="Mutual Funds" inUse={false} />
-          <CategoryChip icon="bitcoin" label="Crypto" inUse={false} />
-          <CategoryChip icon="bank" label="Bonds" inUse={false} />
-          <CategoryChip icon="gold" label="Gold" inUse={false} />
-        </ScrollView>
-      </View>
-
-      {/* SCROLLABLE MARKET WATCH ONLY */}
       <ScrollView
-        style={styles.content}
+        style={styles.body}
+        contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 140 }}
       >
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionLabel}>Market Watch</Text>
-          <TouchableOpacity style={{ opacity: 0.35 }} disabled>
-            <Text style={styles.viewAll}>See All</Text>
-          </TouchableOpacity>
+        {/* Coming soon notice */}
+        <View style={styles.comingSoonBanner}>
+          <Info size={18} color="#0EA5E9" />
+          <Text style={styles.comingSoonText}>
+            Investment features are coming soon. The data below is for preview only.
+          </Text>
         </View>
 
-        <InvestItem
-          name="Reliance Industries"
-          ticker="RELIANCE"
-          price="₹2,942.60"
-          change="+1.45%"
-          up={false}
-          inUse={false}
-        />
-        <InvestItem
-          name="HDFC Bank"
-          ticker="HDFCBANK"
-          price="₹1,432.20"
-          change="-0.30%"
-          up={false}
-          inUse={false}
-        />
-        <InvestItem
-          name="Tata Motors"
-          ticker="TATAMOTORS"
-          price="₹920.45"
-          change="+4.12%"
-          up={false}
-          inUse={false}
-        />
-        <InvestItem
-          name="Infosys Ltd"
-          ticker="INFY"
-          price="₹1,505.15"
-          change="+0.85%"
-          up={false}
-          inUse={false}
-        />
-        <InvestItem
-          name="Zomato Ltd"
-          ticker="ZOMATO"
-          price="₹174.42"
-          change="-1.12%"
-          up={false}
-          inUse={false}
-        />
-        <InvestItem
-          name="ICICI Bank"
-          ticker="ICICIBANK"
-          price="₹1,080.30"
-          change="+2.15%"
-          up={false}
-          inUse={false}
-        />
-        <InvestItem
-          name="Axis Bank"
-          ticker="AXISBANK"
-          price="₹1,050.00"
-          change="+0.45%"
-          up={false}
-          inUse={false}
-        />
-        <InvestItem
-          name="Wipro"
-          ticker="WIPRO"
-          price="₹480.20"
-          change="-0.90%"
-          up={false}
-          inUse={false}
-        />
+        {/* Category Chips — all disabled */}
+        <View style={styles.chipsRow}>
+          <CategoryChip label="Stocks"       active inUse={false} />
+          <CategoryChip label="Mutual Funds" inUse={false} />
+          <CategoryChip label="Crypto"       inUse={false} />
+          <CategoryChip label="Bonds"        inUse={false} />
+          <CategoryChip label="Gold"         inUse={false} />
+        </View>
+
+        {/* Preview data — clearly faded */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>MARKET WATCH</Text>
+            <TouchableOpacity style={{ opacity: 0.35 }} disabled>
+              <Text style={styles.seeAll}>See All</Text>
+            </TouchableOpacity>
+          </View>
+          <InvestItem name="Reliance Industries" ticker="RELIANCE" price="₹2,942.60" change="+1.45%" up />
+          <InvestItem name="HDFC Bank"           ticker="HDFCBANK" price="₹1,432.20" change="-0.30%" up={false} />
+          <InvestItem name="Infosys"             ticker="INFY"     price="₹1,567.80" change="+0.85%" up />
+          <InvestItem name="TCS"                 ticker="TCS"      price="₹3,812.40" change="-0.62%" up={false} />
+        </View>
       </ScrollView>
 
-      {/* FLOATING FOOTER */}
+      {/* Greyed out CTA button */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.9}>
+        <TouchableOpacity style={[styles.primaryBtn, { opacity: 0.35 }]} disabled>
+          <TrendingUp size={20} color="#FFF" style={{ marginRight: 8 }} />
           <Text style={styles.primaryBtnText}>Discover New Assets</Text>
-          <Feather name="arrow-right" size={20} color="#FFF" />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 };
 
+export default InvestDashboard;
+
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#F8FAFC" },
+  safeArea: { flex: 1, backgroundColor: "#0EA5E9" },
   header: {
-    backgroundColor: "#0EA5E9",
-    paddingHorizontal: 24,
-    paddingTop: 15,
-    paddingBottom: 40,
-    borderBottomLeftRadius: 35,
-    borderBottomRightRadius: 35,
-    zIndex: 10,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    backgroundColor: "#0EA5E9", paddingHorizontal: 20,
+    paddingTop: 16, paddingBottom: 32,
   },
-  headerTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  headerTitle: { color: "#FFF", fontSize: 18, fontWeight: "700" },
-  backBtn: { width: 40, height: 40, justifyContent: "center", marginLeft: -10 },
-  searchBtn: {
-    width: 40,
-    height: 40,
+  backBtn: { padding: 4 },
+  portfolioContent: { alignItems: "center" },
+  portfolioLabel: { color: "rgba(255,255,255,0.8)", fontSize: 13, fontWeight: "600" },
+  portfolioValue: { color: "#FFF", fontSize: 36, fontWeight: "900", marginTop: 4 },
+  changeChip: {
+    flexDirection: "row", alignItems: "center", gap: 4,
     backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
+    paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, marginTop: 8,
   },
-  portfolioContainer: { marginTop: 5 },
-  portfolioLabel: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 13,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-  },
-  portfolioValue: {
-    color: "#FFF",
-    fontSize: 36,
-    fontWeight: "800",
-    marginVertical: 4,
-  },
-  statsRow: { flexDirection: "row", alignItems: "center", marginTop: 5 },
-  trendPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.25)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  statsText: {
-    color: "#FFF",
-    fontSize: 12,
-    fontWeight: "700",
-    marginLeft: 4,
-  },
-  statsSubText: {
-    color: "#BAE6FD",
-    fontSize: 12,
-    marginLeft: 8,
-    fontWeight: "500",
-  },
+  changeChipText: { color: "#FFF", fontSize: 12, fontWeight: "800" },
 
-  fixedAssetsContainer: {
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  content: { flex: 1 },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#64748B",
-    letterSpacing: 1.5,
-    marginHorizontal: 24,
-    marginBottom: 16,
-    textTransform: "uppercase",
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingRight: 24,
-    marginTop: 10,
-  },
-  viewAll: {
-    color: "#0EA5E9",
-    fontSize: 13,
-    fontWeight: "700",
-    marginBottom: 16,
-  },
-  chipScroll: { marginBottom: 10 },
+  body: { flex: 1, backgroundColor: "#F8FAFC", borderTopLeftRadius: 32, borderTopRightRadius: 32, marginTop: -16 },
 
+  comingSoonBanner: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    backgroundColor: "#E0F2FE", borderRadius: 16, margin: 20,
+    padding: 14, borderWidth: 1, borderColor: "#BAE6FD",
+  },
+  comingSoonText: { flex: 1, fontSize: 13, color: "#0369A1", fontWeight: "600" },
+
+  chipsRow: { flexDirection: "row", gap: 8, paddingHorizontal: 20, marginBottom: 20, flexWrap: "wrap" },
   chip: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFF",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 14,
-    marginRight: 10,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20,
+    borderWidth: 1.5, borderColor: "#0EA5E9", backgroundColor: "#FFF",
   },
-  chipActive: {
-    backgroundColor: "#0EA5E9",
-    borderColor: "#0EA5E9",
-  },
-  chipText: {
-    marginLeft: 8,
-    fontWeight: "700",
-    color: "#64748B",
-    fontSize: 13,
-  },
+  chipActive: { backgroundColor: "#0EA5E9" },
+  chipText: { fontSize: 13, fontWeight: "700", color: "#0EA5E9" },
   chipTextActive: { color: "#FFF" },
 
+  section: { paddingHorizontal: 20 },
+  sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  sectionTitle: { fontSize: 11, fontWeight: "900", color: "#94A3B8", letterSpacing: 1.5 },
+  seeAll: { fontSize: 13, color: "#0EA5E9", fontWeight: "700" },
+
   menuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFF",
-    padding: 16,
-    borderRadius: 20,
-    marginHorizontal: 20,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
-    shadowColor: "#0EA5E9",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
+    flexDirection: "row", alignItems: "center",
+    backgroundColor: "#FFF", padding: 16, borderRadius: 20, marginBottom: 12,
   },
   menuIconBox: {
-    width: 46,
-    height: 46,
-    backgroundColor: "#F0F9FF",
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 14,
+    width: 44, height: 44, borderRadius: 14,
+    backgroundColor: "#F0F9FF", justifyContent: "center", alignItems: "center", marginRight: 14,
   },
   tickerIconText: { fontSize: 18, fontWeight: "800", color: "#0EA5E9" },
   menuTextContainer: { flex: 1 },
@@ -376,41 +164,17 @@ const styles = StyleSheet.create({
   subText: { fontSize: 12, color: "#94A3B8", fontWeight: "600", marginTop: 2 },
   priceContainer: { alignItems: "flex-end" },
   itemPrice: { fontSize: 15, fontWeight: "700", color: "#1E293B" },
-  changeBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginTop: 4,
-  },
+  changeBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, marginTop: 4 },
   changeText: { fontSize: 11, fontWeight: "800" },
 
   footer: {
-    position: "absolute",
-    bottom: 0,
-    width: "100%",
-    padding: 24,
-    paddingTop: 10,
+    position: "absolute", bottom: 0, width: "100%",
+    padding: 24, paddingTop: 10,
     backgroundColor: "rgba(248, 250, 252, 0.95)",
   },
   primaryBtn: {
-    backgroundColor: "#0EA5E9",
-    height: 58,
-    borderRadius: 18,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#0EA5E9",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 8,
+    backgroundColor: "#0EA5E9", height: 58, borderRadius: 18,
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
   },
-  primaryBtnText: {
-    color: "#FFF",
-    fontSize: 16,
-    fontWeight: "800",
-    marginRight: 12,
-  },
+  primaryBtnText: { color: "#FFF", fontSize: 16, fontWeight: "800" },
 });
-
-export default InvestDashboard;

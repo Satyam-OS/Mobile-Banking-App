@@ -42,11 +42,27 @@ export const apiClient = async (
 
     console.log(`[API] ← ${response.status} ${endpoint}`);
 
-    if (response.status === 401 || response.status === 403) {
+    // FIX: 401 = genuinely unauthorized (bad/expired token) → logout
+    // 403 = forbidden for a specific action (e.g. wrong PIN) → throw error with message, NOT logout
+    if (response.status === 401) {
       await authStorage.clearAll();
       throw new Error("UNAUTHORIZED");
     }
+
+    if (response.status === 403) {
+      // Try to extract the actual error message (e.g. "Incorrect transaction PIN")
+      let message = "Access denied";
+      try {
+        const t = await response.text();
+        const j = JSON.parse(t);
+        message = j.error || j.message || message;
+        console.error(`[API] 403 detail (${endpoint}):`, t.slice(0, 400));
+      } catch { /* ignore parse error */ }
+      throw new Error(message);
+    }
+
     if (response.status === 404) return null;
+
     if (response.status >= 500) {
       let detail = "SERVER_ERROR";
       try {

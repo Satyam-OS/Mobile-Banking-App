@@ -25,29 +25,38 @@ const getGreeting = () => {
   return "Good Evening 🌙";
 };
 
+// Reusable "COMING SOON" badge shown over inactive icons
+const ComingSoonBadge = () => (
+  <View style={csBadgeStyle.wrap}>
+    <Text style={csBadgeStyle.text}>SOON</Text>
+  </View>
+);
+const csBadgeStyle = StyleSheet.create({
+  wrap: {
+    position: "absolute", bottom: -4, alignSelf: "center",
+    backgroundColor: "#FBBF24", borderRadius: 4,
+    paddingHorizontal: 3, paddingVertical: 1, zIndex: 10,
+  },
+  text: { fontSize: 7, fontWeight: "900", color: "#78350F", letterSpacing: 0.3 },
+});
+
 export default function HomeScreen({ navigation }: any) {
-  // FIX: Default balances to VISIBLE (true) so balance shows on load without tapping the eye
   const [visibleBalances, setVisibleBalances] = useState<{ [key: string]: boolean }>({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading]     = useState(true);
+  const [refreshing, setRefreshing]   = useState(false);
   const [userProfile, setUserProfile] = useState({ firstName: "", initials: "U" });
-  const [accounts, setAccounts] = useState<any[]>([]);
+  const [accounts, setAccounts]       = useState<any[]>([]);
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
 
-  const txIcons = [CreditCard, Zap, Wallet, FileText, Smartphone];
+  const txIcons  = [CreditCard, Zap, Wallet, FileText, Smartphone];
   const txColors = ["#F472B6", "#FB923C", "#4ADE80", "#60A5FA", "#A78BFA"];
 
   const loadData = useCallback(async () => {
-    // Step 1: Load stored name immediately for instant display
-    const storedName = await AsyncStorage.getItem("user_name");
+    const storedName   = await AsyncStorage.getItem("user_name");
     const storedMobile = await AsyncStorage.getItem("user_mobile");
-    const displayName = storedName && storedName !== storedMobile ? storedName : (storedMobile || "User");
-    setUserProfile({
-      firstName: displayName,
-      initials: displayName.charAt(0).toUpperCase(),
-    });
+    const displayName  = storedName && storedName !== storedMobile ? storedName : (storedMobile || "User");
+    setUserProfile({ firstName: displayName, initials: displayName.charAt(0).toUpperCase() });
 
-    // Step 2: Fetch real data from all services in parallel
     try {
       const [accResult, txResult, dashResult] = await Promise.allSettled([
         accountService.getAccountDetails(),
@@ -64,42 +73,33 @@ export default function HomeScreen({ navigation }: any) {
         }
       }
 
-      // Process account data
       let accountsLoaded = false;
       if (accResult.status === "fulfilled" && accResult.value) {
         const raw = accResult.value;
-
-        const list: any[] = Array.isArray(raw)
-          ? raw
-          : raw.accounts
-          ? raw.accounts
-          : raw.account
-          ? [raw.account]
-          : raw.balance !== undefined || raw.availableBalance !== undefined
-          ? [raw]
+        const list: any[] = Array.isArray(raw) ? raw
+          : raw.accounts ? raw.accounts
+          : raw.account ? [raw.account]
+          : (raw.balance !== undefined || raw.availableBalance !== undefined) ? [raw]
           : [];
 
         if (list.length > 0) {
           const COLORS = ["#002D72", "#1E293B", "#4338CA", "#0F172A"];
-          const TAGS = ["PRIMARY", "BUSINESS", "INVEST", "SAVINGS"];
+          const TAGS   = ["PRIMARY", "BUSINESS", "INVEST", "SAVINGS"];
           const mapped = list.map((acc: any, i: number) => {
             const bal = acc.balance ?? acc.availableBalance ?? acc.currentBalance ?? 0;
-            const id = acc.id || acc.accountId || acc.accountNumber || String(i + 1);
+            const id  = acc.id || acc.accountId || acc.accountNumber || String(i + 1);
             return {
               id,
-              type: (acc.accountType || acc.type || "SAVINGS ACCOUNT").toUpperCase(),
-              name: acc.accountName || acc.name || acc.holderName || "My Account",
-              balance: Number(bal).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+              type:       (acc.accountType || acc.type || "SAVINGS ACCOUNT").toUpperCase(),
+              name:       acc.accountName || acc.name || acc.holderName || "My Account",
+              balance:    Number(bal).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
               rawBalance: Number(bal),
-              accNo: acc.accountNumber
-                ? `**** ${String(acc.accountNumber).slice(-4)}`
-                : "**** ****",
-              color: COLORS[i % COLORS.length],
-              tag: TAGS[i % TAGS.length],
+              accNo:      acc.accountNumber ? `**** ${String(acc.accountNumber).slice(-4)}` : "**** ****",
+              color:      COLORS[i % COLORS.length],
+              tag:        TAGS[i % TAGS.length],
             };
           });
           setAccounts(mapped);
-          // FIX: Mark all loaded accounts as visible by default
           const defaultVisible: { [key: string]: boolean } = {};
           mapped.forEach((a) => { defaultVisible[a.id] = true; });
           setVisibleBalances(defaultVisible);
@@ -111,45 +111,34 @@ export default function HomeScreen({ navigation }: any) {
         const mobile = storedMobile || "";
         const fallbackId = "1";
         setAccounts([{
-          id: fallbackId,
-          type: "SAVINGS ACCOUNT",
-          name: "My Account",
-          balance: "0.00",
-          rawBalance: 0,
+          id: fallbackId, type: "SAVINGS ACCOUNT", name: "My Account",
+          balance: "0.00", rawBalance: 0,
           accNo: mobile ? `**** ${mobile.slice(-4)}` : "**** ****",
-          color: "#002D72",
-          tag: "PRIMARY",
+          color: "#002D72", tag: "PRIMARY",
         }]);
-        // FIX: Also default the fallback card to visible
         setVisibleBalances({ [fallbackId]: true });
       }
 
-      // Process transactions
       if (txResult.status === "fulfilled" && Array.isArray(txResult.value) && txResult.value.length > 0) {
         const recent = txResult.value.slice(0, 5).map((tx: any, i: number) => {
-          const rawType = (tx.type || tx.transactionType || "").toUpperCase();
+          const rawType  = (tx.type || tx.transactionType || "").toUpperCase();
           const isCredit = rawType === "CREDIT" || rawType === "DEPOSIT";
           return {
             title: tx.description || tx.merchant || tx.narration ||
                    (tx.toAccountNumber ? `Transfer to ${tx.toAccountNumber}` : "Transaction"),
             date: (tx.date || tx.createdAt)
-              ? new Date(tx.date || tx.createdAt).toLocaleDateString("en-IN", {
-                  day: "2-digit", month: "short", year: "numeric",
-                })
+              ? new Date(tx.date || tx.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
               : "",
-            amt: isCredit
-              ? `+ ₹${Number(tx.amount).toLocaleString("en-IN")}`
-              : `- ₹${Number(tx.amount).toLocaleString("en-IN")}`,
-            icon: txIcons[i % txIcons.length],
+            amt:   isCredit ? `+ ₹${Number(tx.amount).toLocaleString("en-IN")}` : `- ₹${Number(tx.amount).toLocaleString("en-IN")}`,
+            icon:  txIcons[i % txIcons.length],
             color: isCredit ? "#4ADE80" : txColors[i % txColors.length],
-            type: rawType,
+            type:  rawType,
           };
         });
         setRecentTransactions(recent);
       } else {
         setRecentTransactions([]);
       }
-
     } catch (err: any) {
       if (err?.message === "UNAUTHORIZED") {
         await authService.logout();
@@ -158,12 +147,7 @@ export default function HomeScreen({ navigation }: any) {
       }
       const mobile = storedMobile || "";
       const fallbackId = "1";
-      setAccounts([{
-        id: fallbackId, type: "SAVINGS ACCOUNT", name: "My Account",
-        balance: "0.00", rawBalance: 0,
-        accNo: mobile ? `**** ${mobile.slice(-4)}` : "**** ****",
-        color: "#002D72", tag: "PRIMARY",
-      }]);
+      setAccounts([{ id: fallbackId, type: "SAVINGS ACCOUNT", name: "My Account", balance: "0.00", rawBalance: 0, accNo: mobile ? `**** ${mobile.slice(-4)}` : "**** ****", color: "#002D72", tag: "PRIMARY" }]);
       setVisibleBalances({ [fallbackId]: true });
       setRecentTransactions([]);
     } finally {
@@ -173,17 +157,11 @@ export default function HomeScreen({ navigation }: any) {
   }, [navigation]);
 
   useEffect(() => { loadData(); }, [loadData]);
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadData();
-  }, [loadData]);
-
-  const toggleBalance = (id: string) =>
-    setVisibleBalances((p) => ({ ...p, [id]: !p[id] }));
+  const onRefresh = useCallback(() => { setRefreshing(true); loadData(); }, [loadData]);
+  const toggleBalance = (id: string) => setVisibleBalances((p) => ({ ...p, [id]: !p[id] }));
 
   const renderCard = (item: any) => {
-    const isVisible = visibleBalances[item.id] !== false; // default true
+    const isVisible = visibleBalances[item.id] !== false;
     return (
       <View key={item.id} style={[styles.premiumCard, { backgroundColor: item.color, width: CARD_WIDTH }, !IS_WIDE && { marginRight: 16 }]}>
         <View style={styles.cardGlow} />
@@ -229,18 +207,27 @@ export default function HomeScreen({ navigation }: any) {
     return (
       <View style={[styles.outerContainer, { justifyContent: "center", alignItems: "center" }]}>
         <ActivityIndicator size="large" color="#FFF" />
-        <Text style={{ color: "rgba(255,255,255,0.7)", marginTop: 14, fontSize: 14, fontWeight: "600" }}>
-          Loading your account...
-        </Text>
+        <Text style={{ color: "rgba(255,255,255,0.7)", marginTop: 14, fontSize: 14, fontWeight: "600" }}>Loading your account...</Text>
       </View>
     );
   }
+
+  // Quick actions data
+  const quickActions = [
+    { label: "Send Money", icon: ArrowUpRight, color: "#3B82F6", route: "Transfer", active: true },
+    { label: "Scan & Pay", icon: ScanLine,    color: "#10B981", route: "",          active: false },
+    { label: "Pay Bills",  icon: FileText,    color: "#F59E0B", route: "",          active: false },
+    { label: "Recharge",   icon: Smartphone,  color: "#8B5CF6", route: "",          active: false },
+    { label: "FASTag",     icon: Zap,         color: "#EF4444", route: "",          active: false },
+    { label: "Invest",     icon: Globe,       color: "#06B6D4", route: "Invest",    active: true },
+    { label: "Insurance",  icon: ShieldCheck, color: "#F43F5E", route: "",          active: false },
+    { label: "Loans",      icon: LayoutGrid,  color: "#6366F1", route: "",          active: false },
+  ];
 
   return (
     <View style={styles.outerContainer}>
       <StatusBar barStyle="light-content" backgroundColor="#002D72" />
 
-      {/* Header */}
       <View style={styles.brandingSection}>
         <SafeAreaView edges={["top"]}>
           <View style={styles.header}>
@@ -261,7 +248,6 @@ export default function HomeScreen({ navigation }: any) {
         </SafeAreaView>
       </View>
 
-      {/* Content */}
       <View style={styles.formContainer}>
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -271,41 +257,31 @@ export default function HomeScreen({ navigation }: any) {
           {/* Account Cards */}
           <View style={styles.cardScrollWrapper}>
             {IS_WIDE ? (
-              <View style={{ alignItems: "center", paddingHorizontal: 20 }}>
-                {accounts.map(renderCard)}
-              </View>
+              <View style={{ alignItems: "center", paddingHorizontal: 20 }}>{accounts.map(renderCard)}</View>
             ) : (
-              <ScrollView
-                horizontal showsHorizontalScrollIndicator={false}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}
                 snapToInterval={CARD_WIDTH + 16} decelerationRate="fast"
-                contentContainerStyle={{ paddingHorizontal: 20 }}
-              >
+                contentContainerStyle={{ paddingHorizontal: 20 }}>
                 {accounts.map(renderCard)}
               </ScrollView>
             )}
           </View>
 
-          {/* Quick Actions */}
+          {/* Quick Actions with COMING SOON badges */}
           <View style={styles.whiteCard}>
             <View style={styles.actionGrid}>
-              {[
-                { label: "Send Money", icon: ArrowUpRight, color: "#3B82F6", route: "Transfer", active: true },
-                { label: "Scan & Pay", icon: ScanLine, color: "#10B981", route: "", active: false },
-                { label: "Pay Bills", icon: FileText, color: "#F59E0B", route: "", active: false },
-                { label: "Recharge", icon: Smartphone, color: "#8B5CF6", route: "", active: false },
-                { label: "FASTag", icon: Zap, color: "#EF4444", route: "", active: false },
-                { label: "Invest", icon: Globe, color: "#06B6D4", route: "Invest", active: true },
-                { label: "Insurance", icon: ShieldCheck, color: "#F43F5E", route: "", active: false },
-                { label: "Loans", icon: LayoutGrid, color: "#6366F1", route: "", active: false },
-              ].map((item, i) => (
+              {quickActions.map((item, i) => (
                 <TouchableOpacity
                   key={i}
                   disabled={!item.active}
-                  style={[styles.actionBtn, !item.active && { opacity: 0.4 }]}
+                  style={[styles.actionBtn, !item.active && { opacity: 0.45 }]}
                   onPress={() => item.route && navigation.navigate(item.route)}
                 >
-                  <View style={[styles.actionIconBox, { backgroundColor: item.active ? `${item.color}18` : "#F1F5F9" }]}>
-                    <item.icon size={22} color={item.active ? item.color : "#94A3B8"} />
+                  <View style={{ position: "relative" }}>
+                    <View style={[styles.actionIconBox, { backgroundColor: item.active ? `${item.color}18` : "#F1F5F9" }]}>
+                      <item.icon size={22} color={item.active ? item.color : "#94A3B8"} />
+                    </View>
+                    {!item.active && <ComingSoonBadge />}
                   </View>
                   <Text style={[styles.actionText, !item.active && { color: "#94A3B8" }]}>{item.label}</Text>
                 </TouchableOpacity>
@@ -313,8 +289,8 @@ export default function HomeScreen({ navigation }: any) {
             </View>
           </View>
 
-          {/* Promo Banner */}
-          <TouchableOpacity style={styles.promoBanner}>
+          {/* Refer & Earn Banner */}
+          <TouchableOpacity style={styles.promoBanner} onPress={() => navigation.navigate("ReferEarn")}>
             <View style={styles.promoContent}>
               <View style={styles.promoIcon}><Heart size={20} color="#FFF" /></View>
               <View style={{ flex: 1 }}>
@@ -336,7 +312,6 @@ export default function HomeScreen({ navigation }: any) {
                 <Text style={styles.viewAll}>View All</Text>
               </TouchableOpacity>
             </View>
-
             {recentTransactions.length === 0 ? (
               <View style={styles.emptyTx}>
                 <Wallet size={32} color="#CBD5E1" />
@@ -372,18 +347,17 @@ export default function HomeScreen({ navigation }: any) {
       {/* Bottom Tab */}
       <View style={styles.bottomTab}>
         {[
-          { label: "HOME", icon: Home, route: "Dashboard", active: true },
-          { label: "PAYMENTS", icon: Wallet, route: "Payments", active: false },
-          { label: "CARDS", icon: CreditCard, route: "Cards", active: false },
-          { label: "INVEST", icon: Zap, route: "Invest", active: false },
-          { label: "MORE", icon: LayoutGrid, route: "Profile", active: false },
+          { label: "HOME",     icon: Home,        route: "Dashboard", active: true },
+          { label: "PAYMENTS", icon: Wallet,      route: "Payments",  active: false },
+          { label: "CARDS",    icon: CreditCard,  route: "Cards",     active: false },
+          { label: "INVEST",   icon: Zap,         route: "Invest",    active: false },
+          { label: "MORE",     icon: LayoutGrid,  route: "Profile",   active: false },
         ].map((tab, i) => (
-          <TouchableOpacity
-            key={i}
-            style={styles.tabItem}
-            onPress={() => navigation.navigate(tab.route)}
-          >
-            <tab.icon size={22} color={tab.active ? "#002D72" : "#94A3B8"} />
+          <TouchableOpacity key={i} style={styles.tabItem} onPress={() => navigation.navigate(tab.route)}>
+            <View style={{ position: "relative" }}>
+              <tab.icon size={22} color={tab.active ? "#002D72" : "#94A3B8"} />
+              {/* No SOON badge on bottom nav — it's too cramped */}
+            </View>
             <Text style={[styles.tabText, tab.active && { color: "#002D72" }]}>{tab.label}</Text>
           </TouchableOpacity>
         ))}
@@ -450,13 +424,7 @@ const styles = StyleSheet.create({
   txAmt: { fontSize: 15, fontWeight: "800" },
   footerInfo: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 6, marginVertical: 15 },
   footerText: { fontSize: 10, color: "#94A3B8", fontWeight: "800", letterSpacing: 1 },
-  bottomTab: {
-    position: "absolute", bottom: 0, width: "100%", height: 80,
-    backgroundColor: "#FFF", flexDirection: "row", justifyContent: "space-around",
-    alignItems: "center", borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    paddingBottom: 10, elevation: 25, zIndex: 10,
-    shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 20,
-  },
+  bottomTab: { position: "absolute", bottom: 0, width: "100%", height: 80, backgroundColor: "#FFF", flexDirection: "row", justifyContent: "space-around", alignItems: "center", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 10, elevation: 25, zIndex: 10, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 20 },
   tabItem: { alignItems: "center", paddingHorizontal: 8 },
   tabText: { fontSize: 9, fontWeight: "900", color: "#94A3B8", marginTop: 4 },
 });
