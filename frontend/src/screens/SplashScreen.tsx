@@ -1,42 +1,35 @@
 import { Shield } from "lucide-react-native";
 import React, { useEffect, useRef } from "react";
 import {
-  Animated,
-  Easing,
-  StatusBar,
-  StyleSheet,
-  Text,
-  View,
+  Animated, Easing, StatusBar, StyleSheet, Text, View,
 } from "react-native";
 import { authService } from "../services/authService";
 
 export default function SplashScreen({ navigation }: any) {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim  = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: false,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 800,
-        easing: Easing.out(Easing.back(1.2)),
-        useNativeDriver: false,
-      }),
+      Animated.timing(fadeAnim,  { toValue: 1, duration: 800, useNativeDriver: false }),
+      Animated.timing(scaleAnim, { toValue: 1, duration: 800, easing: Easing.out(Easing.back(1.2)), useNativeDriver: false }),
     ]).start();
 
     const timer = setTimeout(async () => {
       try {
-        await authService.logout(); // clear any stale tokens during development
-        navigation.replace("Login");
+        // FIX: Check if already logged in — route to Dashboard instead of always clearing token.
+        // Old code called authService.logout() here unconditionally, which cleared the token
+        // on every app load and made persistent sessions impossible.
+        const isLoggedIn = await authService.isLoggedIn();
+        if (isLoggedIn) {
+          navigation.replace("Dashboard");
+        } else {
+          navigation.replace("Login");
+        }
       } catch {
         navigation.replace("Login");
       }
-    }, 2000);
+    }, 1800);
 
     return () => clearTimeout(timer);
   }, []);
@@ -44,9 +37,7 @@ export default function SplashScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#F0F9FF" />
-      <Animated.View
-        style={[styles.logoContainer, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}
-      >
+      <Animated.View style={[styles.logoContainer, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
         <View style={styles.iconBox}>
           <Shield size={70} color="#0EA5E9" strokeWidth={1.5} />
         </View>

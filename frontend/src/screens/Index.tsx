@@ -1,12 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-  ArrowUpRight, Bell, ChevronRight, CreditCard, Eye, EyeOff,
+  ArrowUpRight, Bell, ChevronRight, CreditCard, Eye, EyeOff, LogOut,
   FileText, Globe, Heart, Home, LayoutGrid, ScanLine, Search,
   ShieldCheck, Smartphone, TrendingUp, Wallet, Zap,
 } from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator, Dimensions, Platform, RefreshControl,
+  ActivityIndicator, Alert, Dimensions, Platform, RefreshControl,
   ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -49,6 +49,22 @@ export default function HomeScreen({ navigation }: any) {
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
 
   const txIcons  = [CreditCard, Zap, Wallet, FileText, Smartphone];
+
+  // Logout handler — accessible directly from dashboard header
+  const handleLogout = () => {
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async () => {
+          try { await authService.logout(); } catch { /* ignore */ }
+          // Use reset to fully clear navigation stack — works on web and native
+          navigation.reset({ index: 0, routes: [{ name: "Login" }] });
+        },
+      },
+    ]);
+  };
   const txColors = ["#F472B6", "#FB923C", "#4ADE80", "#60A5FA", "#A78BFA"];
 
   const loadData = useCallback(async () => {
@@ -243,6 +259,7 @@ export default function HomeScreen({ navigation }: any) {
             <View style={styles.headerIcons}>
               <TouchableOpacity style={styles.iconCircle}><Search size={20} color="#FFF" /></TouchableOpacity>
               <TouchableOpacity style={styles.iconCircle}><Bell size={20} color="#FFF" /></TouchableOpacity>
+              <TouchableOpacity style={[styles.iconCircle, { backgroundColor: "rgba(239,68,68,0.25)" }]} onPress={handleLogout}><LogOut size={20} color="#FFA0A0" /></TouchableOpacity>
             </View>
           </View>
         </SafeAreaView>

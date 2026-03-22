@@ -1,14 +1,5 @@
 /**
  * Auth Service — via API Gateway
- *
- * POST  /auth/otp/generate
- * POST  /auth/otp/verify
- * POST  /auth/auth/login
- * POST  /auth/auth/reset-password
- * GET   /auth/user/dashboard
- * POST  /auth/user/set-pin
- * POST  /auth/user/verify-pin
- * GET   /auth/admin/dashboard
  */
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { apiClient } from "./api";
@@ -38,14 +29,14 @@ export const authService = {
 
     const displayName = (name && name.trim() !== "") ? name.trim() : credentials.mobile;
 
-    await AsyncStorage.setItem("user_name", displayName);
+    await AsyncStorage.setItem("user_name",   displayName);
     await AsyncStorage.setItem("user_mobile", credentials.mobile);
     await AsyncStorage.setItem("user_data", JSON.stringify({
-      name: displayName,
-      mobile: credentials.mobile,
+      name:       displayName,
+      mobile:     credentials.mobile,
       role,
       customerId: data?.user?.id || data?.customerId || data?.id || "",
-      email: data?.email || data?.user?.email || "",
+      email:      data?.email || data?.user?.email || "",
     }));
 
     return { ...data, role };
@@ -70,28 +61,16 @@ export const authService = {
     return data;
   },
 
-  /**
-   * Reset password using OTP verification.
-   * Flow: generateOtp → user gets OTP → call this with { mobile, otp, newPassword, confirmPassword }
-   */
-  resetPassword: async (
-    mobile: string,
-    otp: string,
-    newPassword: string,
-    confirmPassword: string
-  ) => {
+  resetPassword: async (mobile: string, otp: string, newPassword: string, confirmPassword: string) => {
     return apiClient("/auth/auth/reset-password", {
       method: "POST",
       body: JSON.stringify({ mobile, otp, newPassword, confirmPassword }),
     }, false);
   },
 
-  getUserDashboard: async () => apiClient("/auth/user/dashboard", { method: "GET" }),
+  getUserDashboard:  async () => apiClient("/auth/user/dashboard",  { method: "GET" }),
   getAdminDashboard: async () => apiClient("/auth/admin/dashboard", { method: "GET" }),
 
-  /**
-   * Set a 4-digit transaction PIN for the authenticated user.
-   */
   setTransactionPin: async (pin: string, confirmPin: string) => {
     return apiClient("/auth/user/set-pin", {
       method: "POST",
@@ -99,11 +78,6 @@ export const authService = {
     });
   },
 
-  /**
-   * Verify a 4-digit transaction PIN.
-   * Returns { valid: true } on success.
-   * Throws on incorrect PIN or rate-limit.
-   */
   verifyTransactionPin: async (pin: string) => {
     return apiClient("/auth/user/verify-pin", {
       method: "POST",
@@ -111,12 +85,21 @@ export const authService = {
     });
   },
 
+  /**
+   * Clears all stored tokens and user data.
+   * Call this then use navigation.reset() to go back to Login.
+   */
   logout: async () => {
     await authStorage.clearAll();
-    await AsyncStorage.multiRemove(["user_name", "user_mobile", "user_data"]);
+    await AsyncStorage.multiRemove([
+      "user_name",
+      "user_mobile",
+      "user_data",
+      "profile_cache",
+    ]);
   },
 
-  isLoggedIn: async (): Promise<boolean> => !!(await authStorage.getUserToken()),
+  isLoggedIn:      async (): Promise<boolean> => !!(await authStorage.getUserToken()),
   isAdminLoggedIn: async (): Promise<boolean> => !!(await authStorage.getAdminToken()),
 
   getCachedUserData: async () => {
