@@ -22,17 +22,27 @@ public class TransactionResponse {
     private String referenceNumber;
     private LocalDateTime createdAt;
 
+    /**
+     * Direction from the requesting user's perspective:
+     *  "DEBIT"  — money left the user's account (they sent it)
+     *  "CREDIT" — money entered the user's account (they received it)
+     *
+     * Set by TransactionService.getTransactionHistory() — not stored in DB.
+     */
+    private String direction;
+
     public static TransactionResponse fromEntity(Transaction transaction) {
-        return new TransactionResponse(
-                transaction.getId(),
-                transaction.getFromAccountNumber(),
-                transaction.getToAccountNumber(),
-                transaction.getAmount(),
-                transaction.getType().name(),
-                transaction.getStatus().name(),
-                transaction.getDescription(),
-                transaction.getReferenceNumber(),
-                transaction.getCreatedAt()
-        );
+        TransactionResponse r = new TransactionResponse();
+        r.setId(transaction.getId());
+        r.setFromAccountNumber(transaction.getFromAccountNumber());
+        r.setToAccountNumber(transaction.getToAccountNumber());
+        r.setAmount(transaction.getAmount());
+        r.setType(transaction.getType().name());
+        r.setStatus(transaction.getStatus().name());
+        r.setDescription(transaction.getDescription());
+        r.setReferenceNumber(transaction.getReferenceNumber());
+        r.setCreatedAt(transaction.getCreatedAt());
+        // direction is set separately by the service layer
+        return r;
     }
 }

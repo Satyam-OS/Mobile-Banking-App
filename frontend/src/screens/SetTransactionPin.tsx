@@ -1,7 +1,7 @@
 import {
   AlertCircle, ArrowLeft, CheckCircle2, ShieldCheck,
 } from "lucide-react-native";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
   StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View,
@@ -11,111 +11,152 @@ import { authService } from "../services/authService";
 
 type PinStep = "enter" | "confirm";
 
-export default function SetTransactionPin({ navigation }: any) {
-  const [step, setStep]         = useState<PinStep>("enter");
-  const [pin, setPin]           = useState(["", "", "", ""]);
-  const [confirmPin, setConfirmPin] = useState(["", "", "", ""]);
-  const [isLoading, setIsLoading]   = useState(false);
-  const [statusMessage, setStatusMessage] = useState<{
-    type: "success" | "error"; text: string;
-  } | null>(null);
-
-  const enterRefs  = useRef<(TextInput | null)[]>([]);
-  const confirmRefs = useRef<(TextInput | null)[]>([]);
+/**
+ * PIN Input using a SINGLE hidden TextInput behind 4 visual boxes.
+ *
+ * This is the most reliable approach for PIN entry on both web and native:
+ * - One real TextInput captures all keystrokes
+ * - 4 visual boxes show filled/empty state
+ * - Focus, backspace, and auto-advance all work naturally
+ * - No fighting with React Native's focus management
+ */
+const PinInput = ({
+  value,
+  onChange,
+  autoFocus = false,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  autoFocus?: boolean;
+}) => {
+  const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
-    if (statusMessage) {
-      const t = setTimeout(() => setStatusMessage(null), 4000);
+    if (autoFocus) {
+      const t = setTimeout(() => inputRef.current?.focus(), 250);
       return () => clearTimeout(t);
     }
-  }, [statusMessage]);
+  }, [autoFocus]);
 
-  // Auto-focus first box when component mounts
+  return (
+    <TouchableOpacity
+      activeOpacity={1}
+      onPress={() => inputRef.current?.focus()}
+      style={pinStyles.container}
+    >
+      {/* Hidden real input — positioned behind boxes */}
+      <TextInput
+        ref={inputRef}
+        value={value}
+        onChangeText={(t) => {
+          // Only digits, max 4
+          const clean = t.replace(/[^0-9]/g, "").slice(0, 4);
+          onChange(clean);
+        }}
+        keyboardType="number-pad"
+        maxLength={4}
+        style={pinStyles.hiddenInput}
+        caretHidden
+        autoFocus={autoFocus}
+      />
+
+      {/* Visual boxes */}
+      {[0, 1, 2, 3].map((i) => (
+        <View
+          key={i}
+          style={[
+            pinStyles.box,
+            value.length === i && pinStyles.boxActive,   // cursor position
+            value.length > i  && pinStyles.boxFilled,    // filled
+          ]}
+        >
+          {value.length > i ? (
+            <View style={pinStyles.dot} />
+          ) : null}
+        </View>
+      ))}
+    </TouchableOpacity>
+  );
+};
+
+const pinStyles = StyleSheet.create({
+  container: {
+    flexDirection: "row",
+    gap: 16,
+    justifyContent: "center",
+    position: "relative",
+  },
+  hiddenInput: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    opacity: 0,
+    zIndex: 10,
+  },
+  box: {
+    width: 62, height: 70, borderRadius: 18,
+    borderWidth: 2, borderColor: "#E2E8F0",
+    backgroundColor: "#FFF",
+    justifyContent: "center", alignItems: "center",
+  },
+  boxActive: {
+    borderColor: "#0EA5E9",
+    backgroundColor: "#F0F9FF",
+  },
+  boxFilled: {
+    borderColor: "#0EA5E9",
+    backgroundColor: "#F0F9FF",
+  },
+  dot: {
+    width: 16, height: 16, borderRadius: 8,
+    backgroundColor: "#001F3F",
+  },
+});
+
+// ── Main Screen ──────────────────────────────────────────────────────────────
+
+export default function SetTransactionPin({ navigation }: any) {
+  const [step,         setStep]         = useState<PinStep>("enter");
+  const [pin,         setPin]           = useState("");
+  const [confirmPin,  setConfirmPin]    = useState("");
+  const [isLoading,   setIsLoading]     = useState(false);
+  const [statusMsg,   setStatusMsg]     = useState<{ type: "success" | "error"; text: string } | null>(null);
+
   useEffect(() => {
-    setTimeout(() => enterRefs.current[0]?.focus(), 200);
-  }, []);
-
-  // Auto-focus first confirm box when step changes
-  useEffect(() => {
-    if (step === "confirm") {
-      setTimeout(() => confirmRefs.current[0]?.focus(), 200);
+    if (statusMsg) {
+      const t = setTimeout(() => setStatusMsg(null), 4000);
+      return () => clearTimeout(t);
     }
-  }, [step]);
-
-  // FIX: Use a single controlled input per box with proper focus management
-  const handlePinChange = useCallback((
-    text: string,
-    index: number,
-    arr: string[],
-    setArr: (v: string[]) => void,
-    refs: React.MutableRefObject<(TextInput | null)[]>
-  ) => {
-    // Only take the last character typed (handles paste/autocomplete)
-    const digit = text.replace(/[^0-9]/g, "").slice(-1);
-    const updated = [...arr];
-    updated[index] = digit;
-    setArr(updated);
-
-    // Auto-advance to next box as soon as a digit is entered
-    if (digit !== "" && index < 3) {
-      refs.current[index + 1]?.focus();
-    }
-  }, []);
-
-  const handleKeyPress = useCallback((
-    key: string,
-    index: number,
-    arr: string[],
-    setArr: (v: string[]) => void,
-    refs: React.MutableRefObject<(TextInput | null)[]>
-  ) => {
-    if (key === "Backspace") {
-      if (arr[index] !== "") {
-        // Clear current box
-        const updated = [...arr];
-        updated[index] = "";
-        setArr(updated);
-      } else if (index > 0) {
-        // Move to previous box and clear it
-        const updated = [...arr];
-        updated[index - 1] = "";
-        setArr(updated);
-        refs.current[index - 1]?.focus();
-      }
-    }
-  }, []);
-
-  const pinValue        = pin.join("");
-  const confirmPinValue = confirmPin.join("");
+  }, [statusMsg]);
 
   const handleContinue = () => {
-    setStatusMessage(null);
-    if (pinValue.length !== 4) {
-      setStatusMessage({ type: "error", text: "Please enter a complete 4-digit PIN." });
+    setStatusMsg(null);
+    if (pin.length !== 4) {
+      setStatusMsg({ type: "error", text: "Please enter a complete 4-digit PIN." });
       return;
     }
     setStep("confirm");
+    setConfirmPin("");
   };
 
   const handleSetPin = async () => {
-    setStatusMessage(null);
-    if (confirmPinValue.length !== 4) {
-      setStatusMessage({ type: "error", text: "Please enter the confirmation PIN." });
+    setStatusMsg(null);
+    if (confirmPin.length !== 4) {
+      setStatusMsg({ type: "error", text: "Please enter the confirmation PIN." });
       return;
     }
-    if (pinValue !== confirmPinValue) {
-      setStatusMessage({ type: "error", text: "PINs do not match. Please try again." });
-      setConfirmPin(["", "", "", ""]);
-      setTimeout(() => confirmRefs.current[0]?.focus(), 200);
+    if (pin !== confirmPin) {
+      setStatusMsg({ type: "error", text: "PINs do not match. Please try again." });
+      setConfirmPin("");
       return;
     }
     setIsLoading(true);
     try {
-      await authService.setTransactionPin(pinValue, confirmPinValue);
-      setStatusMessage({ type: "success", text: "Transaction PIN set successfully." });
+      await authService.setTransactionPin(pin, confirmPin);
+      setStatusMsg({ type: "success", text: "Transaction PIN set successfully." });
       setTimeout(() => navigation.goBack(), 2000);
     } catch (err: any) {
-      setStatusMessage({
+      setStatusMsg({
         type: "error",
         text: err.message === "NETWORK_ERROR"
           ? "Network Error: Unable to reach servers."
@@ -126,43 +167,28 @@ export default function SetTransactionPin({ navigation }: any) {
     }
   };
 
-  const PinBoxRow = ({
-    arr, setArr, refs,
-  }: {
-    arr: string[];
-    setArr: (v: string[]) => void;
-    refs: React.MutableRefObject<(TextInput | null)[]>;
-  }) => (
-    <View style={styles.pinRow}>
-      {arr.map((digit, i) => (
-        <TextInput
-          key={i}
-          ref={(r) => { refs.current[i] = r; }}
-          style={[styles.pinBox, digit !== "" && styles.pinBoxFilled]}
-          // Show bullet when filled so user sees feedback
-          value={digit !== "" ? "●" : ""}
-          onChangeText={(t) => handlePinChange(t, i, arr, setArr, refs)}
-          onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, i, arr, setArr, refs)}
-          keyboardType="number-pad"
-          maxLength={1}
-          textAlign="center"
-          caretHidden
-          selectTextOnFocus
-        />
-      ))}
-    </View>
-  );
+  const currentPin   = step === "enter" ? pin : confirmPin;
+  const setCurrentPin = step === "enter" ? setPin : setConfirmPin;
+  const canProceed   = currentPin.length === 4;
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#001F3F" />
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }} bounces={false} showsVerticalScrollIndicator={false}>
-
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          bounces={false}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Header */}
           <View style={styles.brandingSection}>
             <TouchableOpacity
               style={styles.backButton}
-              onPress={() => (step === "confirm" ? setStep("enter") : navigation.goBack())}
+              onPress={() => step === "confirm" ? (setStep("enter"), setConfirmPin("")) : navigation.goBack()}
             >
               <ArrowLeft color="#FFF" size={24} />
             </TouchableOpacity>
@@ -179,64 +205,66 @@ export default function SetTransactionPin({ navigation }: any) {
             </View>
           </View>
 
+          {/* Form */}
           <View style={styles.formContainer}>
-            {statusMessage && (
-              <View style={[styles.statusBanner, statusMessage.type === "error" ? styles.errorBanner : styles.successBanner]}>
-                {statusMessage.type === "error"
+            {/* Status banner */}
+            {statusMsg && (
+              <View style={[styles.statusBanner, statusMsg.type === "error" ? styles.errorBanner : styles.successBanner]}>
+                {statusMsg.type === "error"
                   ? <AlertCircle size={18} color="#EF4444" />
-                  : <CheckCircle2 size={18} color="#10B981" />
-                }
-                <Text style={[styles.statusText, statusMessage.type === "error" ? styles.errorText : styles.successText]}>
-                  {statusMessage.text}
+                  : <CheckCircle2 size={18} color="#10B981" />}
+                <Text style={[styles.statusText, statusMsg.type === "error" ? styles.errorText : styles.successText]}>
+                  {statusMsg.text}
                 </Text>
               </View>
             )}
 
+            <View style={styles.headerTextGroup}>
+              <Text style={styles.welcomeTitle}>
+                {step === "enter" ? "Create PIN" : "Confirm PIN"}
+              </Text>
+              <Text style={styles.welcomeSub}>
+                {step === "enter"
+                  ? "Set a 4-digit transaction PIN. You'll need this for every money transfer."
+                  : "Re-enter your 4-digit PIN to confirm."}
+              </Text>
+            </View>
+
+            <View style={styles.pinSection}>
+              <Text style={styles.pinLabel}>
+                {step === "enter" ? "ENTER 4-DIGIT PIN" : "CONFIRM YOUR PIN"}
+              </Text>
+
+              {/* Single PinInput — key changes on step so it remounts and auto-focuses */}
+              <PinInput
+                key={step}
+                value={currentPin}
+                onChange={setCurrentPin}
+                autoFocus
+              />
+            </View>
+
             {step === "enter" && (
-              <>
-                <View style={styles.headerTextGroup}>
-                  <Text style={styles.welcomeTitle}>Create PIN</Text>
-                  <Text style={styles.welcomeSub}>
-                    Set a 4-digit transaction PIN. You'll need this for every money transfer.
-                  </Text>
-                </View>
-                <View style={styles.pinSection}>
-                  <Text style={styles.pinLabel}>ENTER 4-DIGIT PIN</Text>
-                  <PinBoxRow arr={pin} setArr={setPin} refs={enterRefs} />
-                </View>
-                <View style={styles.securityNote}>
-                  <ShieldCheck size={14} color="#64748B" />
-                  <Text style={styles.securityNoteText}>Your PIN is encrypted and never stored in plain text.</Text>
-                </View>
-                <TouchableOpacity
-                  style={[styles.submitButton, pinValue.length !== 4 && { opacity: 0.5 }]}
-                  onPress={handleContinue}
-                  disabled={pinValue.length !== 4}
-                >
-                  <Text style={styles.submitButtonText}>CONTINUE</Text>
-                </TouchableOpacity>
-              </>
+              <View style={styles.securityNote}>
+                <ShieldCheck size={14} color="#64748B" />
+                <Text style={styles.securityNoteText}>
+                  Your PIN is encrypted and never stored in plain text.
+                </Text>
+              </View>
             )}
 
-            {step === "confirm" && (
-              <>
-                <View style={styles.headerTextGroup}>
-                  <Text style={styles.welcomeTitle}>Confirm PIN</Text>
-                  <Text style={styles.welcomeSub}>Re-enter your 4-digit PIN to confirm.</Text>
-                </View>
-                <View style={styles.pinSection}>
-                  <Text style={styles.pinLabel}>CONFIRM YOUR PIN</Text>
-                  <PinBoxRow arr={confirmPin} setArr={setConfirmPin} refs={confirmRefs} />
-                </View>
-                <TouchableOpacity
-                  style={[styles.submitButton, (isLoading || confirmPinValue.length !== 4) && { opacity: 0.6 }]}
-                  onPress={handleSetPin}
-                  disabled={isLoading || confirmPinValue.length !== 4}
-                >
-                  {isLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitButtonText}>SET TRANSACTION PIN</Text>}
-                </TouchableOpacity>
-              </>
-            )}
+            <TouchableOpacity
+              style={[styles.submitButton, !canProceed && { opacity: 0.45 }]}
+              onPress={step === "enter" ? handleContinue : handleSetPin}
+              disabled={!canProceed || isLoading}
+            >
+              {isLoading
+                ? <ActivityIndicator color="#FFF" />
+                : <Text style={styles.submitButtonText}>
+                    {step === "enter" ? "CONTINUE" : "SET TRANSACTION PIN"}
+                  </Text>
+              }
+            </TouchableOpacity>
 
             <View style={styles.footer}>
               <ShieldCheck size={14} color="#94A3B8" />
@@ -265,11 +293,11 @@ const styles = StyleSheet.create({
     borderRadius: 15, justifyContent: "center", alignItems: "center",
   },
   brandName: { color: "#FFF", fontSize: 22, fontWeight: "900" },
-  brandSub: { color: "rgba(255,255,255,0.6)", fontSize: 9, fontWeight: "800", letterSpacing: 1.5, marginTop: 2 },
+  brandSub:  { color: "rgba(255,255,255,0.6)", fontSize: 9, fontWeight: "800", letterSpacing: 1.5, marginTop: 2 },
   progressRow: { flexDirection: "row", gap: 8, marginTop: 16 },
-  progressDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.3)" },
+  progressDot:      { width: 8,  height: 8, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.3)" },
   progressDotActive: { backgroundColor: "#FFF", width: 24 },
-  progressDotDone: { backgroundColor: "#10B981", width: 8 },
+  progressDotDone:   { backgroundColor: "#10B981", width: 8 },
   formContainer: {
     flex: 1, backgroundColor: "#F0F9FF",
     borderTopLeftRadius: 40, borderTopRightRadius: 40,
@@ -284,17 +312,11 @@ const styles = StyleSheet.create({
   statusText: { fontSize: 13, fontWeight: "700", flex: 1 },
   successText: { color: "#166534" },
   errorText:   { color: "#991B1B" },
-  headerTextGroup: { marginBottom: 32 },
+  headerTextGroup: { marginBottom: 36 },
   welcomeTitle: { fontSize: 24, fontWeight: "900", color: "#001F3F" },
-  welcomeSub: { fontSize: 13, color: "#64748B", marginTop: 4, fontWeight: "500", lineHeight: 20 },
+  welcomeSub:   { fontSize: 13, color: "#64748B", marginTop: 4, fontWeight: "500", lineHeight: 20 },
   pinSection: { alignItems: "center", marginBottom: 28 },
-  pinLabel: { fontSize: 10, fontWeight: "900", color: "#64748B", letterSpacing: 1.5, marginBottom: 20 },
-  pinRow: { flexDirection: "row", gap: 16 },
-  pinBox: {
-    width: 62, height: 70, borderRadius: 18, borderWidth: 2, borderColor: "#E2E8F0",
-    backgroundColor: "#FFF", fontSize: 28, fontWeight: "900", color: "#001F3F",
-  },
-  pinBoxFilled: { borderColor: "#0EA5E9", backgroundColor: "#F0F9FF" },
+  pinLabel: { fontSize: 10, fontWeight: "900", color: "#64748B", letterSpacing: 1.5, marginBottom: 24 },
   securityNote: {
     flexDirection: "row", alignItems: "center", gap: 8,
     backgroundColor: "#F8FAFC", borderRadius: 12, padding: 12, marginBottom: 28,
