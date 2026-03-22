@@ -6,7 +6,7 @@ import {
 } from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator, Alert, Dimensions, Platform, RefreshControl,
+  ActivityIndicator, Dimensions, Platform, RefreshControl,
   ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -25,7 +25,6 @@ const getGreeting = () => {
   return "Good Evening 🌙";
 };
 
-// Reusable "COMING SOON" badge shown over inactive icons
 const ComingSoonBadge = () => (
   <View style={csBadgeStyle.wrap}>
     <Text style={csBadgeStyle.text}>SOON</Text>
@@ -42,30 +41,33 @@ const csBadgeStyle = StyleSheet.create({
 
 export default function HomeScreen({ navigation }: any) {
   const [visibleBalances, setVisibleBalances] = useState<{ [key: string]: boolean }>({});
-  const [isLoading, setIsLoading]     = useState(true);
-  const [refreshing, setRefreshing]   = useState(false);
-  const [userProfile, setUserProfile] = useState({ firstName: "", initials: "U" });
-  const [accounts, setAccounts]       = useState<any[]>([]);
+  const [isLoading,       setIsLoading]       = useState(true);
+  const [refreshing,      setRefreshing]       = useState(false);
+  const [userProfile,     setUserProfile]      = useState({ firstName: "", initials: "U" });
+  const [accounts,        setAccounts]         = useState<any[]>([]);
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+  // Inline logout confirmation — avoids Alert.alert which doesn't work on web
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [loggingOut,        setLoggingOut]         = useState(false);
 
   const txIcons  = [CreditCard, Zap, Wallet, FileText, Smartphone];
-
-  // Logout handler — accessible directly from dashboard header
-  const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Logout",
-        style: "destructive",
-        onPress: async () => {
-          try { await authService.logout(); } catch { /* ignore */ }
-          // Use reset to fully clear navigation stack — works on web and native
-          navigation.reset({ index: 0, routes: [{ name: "Login" }] });
-        },
-      },
-    ]);
-  };
   const txColors = ["#F472B6", "#FB923C", "#4ADE80", "#60A5FA", "#A78BFA"];
+
+  const doLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await authService.logout();
+    } catch { /* ignore — clear storage regardless */ }
+
+    // For web: window.location is the most reliable way to get a clean slate
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      window.location.href = "/";
+      return;
+    }
+
+    // For native: reset navigation stack
+    navigation.reset({ index: 0, routes: [{ name: "Login" }] });
+  };
 
   const loadData = useCallback(async () => {
     const storedName   = await AsyncStorage.getItem("user_name");
@@ -94,7 +96,7 @@ export default function HomeScreen({ navigation }: any) {
         const raw = accResult.value;
         const list: any[] = Array.isArray(raw) ? raw
           : raw.accounts ? raw.accounts
-          : raw.account ? [raw.account]
+          : raw.account  ? [raw.account]
           : (raw.balance !== undefined || raw.availableBalance !== undefined) ? [raw]
           : [];
 
@@ -105,50 +107,39 @@ export default function HomeScreen({ navigation }: any) {
             const bal = acc.balance ?? acc.availableBalance ?? acc.currentBalance ?? 0;
             const id  = acc.id || acc.accountId || acc.accountNumber || String(i + 1);
             return {
-              id,
+              id, color: COLORS[i % COLORS.length], tag: TAGS[i % TAGS.length],
               type:       (acc.accountType || acc.type || "SAVINGS ACCOUNT").toUpperCase(),
               name:       acc.accountName || acc.name || acc.holderName || "My Account",
               balance:    Number(bal).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
               rawBalance: Number(bal),
               accNo:      acc.accountNumber ? `**** ${String(acc.accountNumber).slice(-4)}` : "**** ****",
-              color:      COLORS[i % COLORS.length],
-              tag:        TAGS[i % TAGS.length],
             };
           });
           setAccounts(mapped);
-          const defaultVisible: { [key: string]: boolean } = {};
-          mapped.forEach((a) => { defaultVisible[a.id] = true; });
-          setVisibleBalances(defaultVisible);
+          const dv: { [k: string]: boolean } = {};
+          mapped.forEach((a) => { dv[a.id] = true; });
+          setVisibleBalances(dv);
           accountsLoaded = true;
         }
       }
 
       if (!accountsLoaded) {
-        const mobile = storedMobile || "";
-        const fallbackId = "1";
-        setAccounts([{
-          id: fallbackId, type: "SAVINGS ACCOUNT", name: "My Account",
-          balance: "0.00", rawBalance: 0,
-          accNo: mobile ? `**** ${mobile.slice(-4)}` : "**** ****",
-          color: "#002D72", tag: "PRIMARY",
-        }]);
-        setVisibleBalances({ [fallbackId]: true });
+        const fid = "1";
+        setAccounts([{ id: fid, type: "SAVINGS ACCOUNT", name: "My Account", balance: "0.00", rawBalance: 0, accNo: storedMobile ? `**** ${storedMobile.slice(-4)}` : "**** ****", color: "#002D72", tag: "PRIMARY" }]);
+        setVisibleBalances({ [fid]: true });
       }
 
       if (txResult.status === "fulfilled" && Array.isArray(txResult.value) && txResult.value.length > 0) {
         const recent = txResult.value.slice(0, 5).map((tx: any, i: number) => {
+          const dir      = (tx as any).direction;
           const rawType  = (tx.type || tx.transactionType || "").toUpperCase();
-          const isCredit = rawType === "CREDIT" || rawType === "DEPOSIT";
+          const isCredit = dir ? dir === "CREDIT" : (rawType === "CREDIT" || rawType === "DEPOSIT");
           return {
-            title: tx.description || tx.merchant || tx.narration ||
-                   (tx.toAccountNumber ? `Transfer to ${tx.toAccountNumber}` : "Transaction"),
-            date: (tx.date || tx.createdAt)
-              ? new Date(tx.date || tx.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
-              : "",
+            title: tx.description || tx.merchant || (tx.toAccountNumber ? `Transfer to ${tx.toAccountNumber}` : "Transaction"),
+            date:  (tx.date || tx.createdAt) ? new Date(tx.date || tx.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "",
             amt:   isCredit ? `+ ₹${Number(tx.amount).toLocaleString("en-IN")}` : `- ₹${Number(tx.amount).toLocaleString("en-IN")}`,
             icon:  txIcons[i % txIcons.length],
             color: isCredit ? "#4ADE80" : txColors[i % txColors.length],
-            type:  rawType,
           };
         });
         setRecentTransactions(recent);
@@ -156,16 +147,10 @@ export default function HomeScreen({ navigation }: any) {
         setRecentTransactions([]);
       }
     } catch (err: any) {
-      if (err?.message === "UNAUTHORIZED") {
-        await authService.logout();
-        navigation.replace("Login");
-        return;
-      }
-      const mobile = storedMobile || "";
-      const fallbackId = "1";
-      setAccounts([{ id: fallbackId, type: "SAVINGS ACCOUNT", name: "My Account", balance: "0.00", rawBalance: 0, accNo: mobile ? `**** ${mobile.slice(-4)}` : "**** ****", color: "#002D72", tag: "PRIMARY" }]);
-      setVisibleBalances({ [fallbackId]: true });
-      setRecentTransactions([]);
+      if (err?.message === "UNAUTHORIZED") { await authService.logout(); navigation.replace("Login"); return; }
+      const fid = "1";
+      setAccounts([{ id: fid, type: "SAVINGS ACCOUNT", name: "My Account", balance: "0.00", rawBalance: 0, accNo: "**** ****", color: "#002D72", tag: "PRIMARY" }]);
+      setVisibleBalances({ [fid]: true });
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -210,9 +195,7 @@ export default function HomeScreen({ navigation }: any) {
           </View>
           <View style={{ flexDirection: "row", gap: 10 }}>
             <TouchableOpacity style={styles.cardActionCircle}><CreditCard size={18} color="#FFF" /></TouchableOpacity>
-            <TouchableOpacity style={styles.cardActionCircle} onPress={() => navigation.navigate("Invest")}>
-              <TrendingUp size={18} color="#FFF" />
-            </TouchableOpacity>
+            <TouchableOpacity style={styles.cardActionCircle} onPress={() => navigation.navigate("Invest")}><TrendingUp size={18} color="#FFF" /></TouchableOpacity>
           </View>
         </View>
       </View>
@@ -228,7 +211,6 @@ export default function HomeScreen({ navigation }: any) {
     );
   }
 
-  // Quick actions data
   const quickActions = [
     { label: "Send Money", icon: ArrowUpRight, color: "#3B82F6", route: "Transfer", active: true },
     { label: "Scan & Pay", icon: ScanLine,    color: "#10B981", route: "",          active: false },
@@ -244,6 +226,41 @@ export default function HomeScreen({ navigation }: any) {
     <View style={styles.outerContainer}>
       <StatusBar barStyle="light-content" backgroundColor="#002D72" />
 
+      {/* ── Inline logout confirmation overlay ── */}
+      {showLogoutConfirm && (
+        <View style={styles.logoutOverlay}>
+          <View style={styles.logoutDialog}>
+            <View style={styles.logoutIconBox}>
+              <LogOut size={28} color="#EF4444" />
+            </View>
+            <Text style={styles.logoutDialogTitle}>Logout</Text>
+            <Text style={styles.logoutDialogMsg}>
+              Are you sure you want to logout?
+            </Text>
+            <View style={styles.logoutDialogBtns}>
+              <TouchableOpacity
+                style={styles.logoutCancelBtn}
+                onPress={() => setShowLogoutConfirm(false)}
+                disabled={loggingOut}
+              >
+                <Text style={styles.logoutCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.logoutConfirmBtn, loggingOut && { opacity: 0.6 }]}
+                onPress={doLogout}
+                disabled={loggingOut}
+              >
+                {loggingOut
+                  ? <ActivityIndicator color="#FFF" size="small" />
+                  : <Text style={styles.logoutConfirmText}>Logout</Text>
+                }
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Header */}
       <View style={styles.brandingSection}>
         <SafeAreaView edges={["top"]}>
           <View style={styles.header}>
@@ -259,41 +276,39 @@ export default function HomeScreen({ navigation }: any) {
             <View style={styles.headerIcons}>
               <TouchableOpacity style={styles.iconCircle}><Search size={20} color="#FFF" /></TouchableOpacity>
               <TouchableOpacity style={styles.iconCircle}><Bell size={20} color="#FFF" /></TouchableOpacity>
-              <TouchableOpacity style={[styles.iconCircle, { backgroundColor: "rgba(239,68,68,0.25)" }]} onPress={handleLogout}><LogOut size={20} color="#FFA0A0" /></TouchableOpacity>
+              {/* Logout button — uses inline confirm, not Alert.alert (broken on web) */}
+              <TouchableOpacity
+                style={[styles.iconCircle, styles.logoutBtn]}
+                onPress={() => setShowLogoutConfirm(true)}
+              >
+                <LogOut size={20} color="#FFA0A0" />
+              </TouchableOpacity>
             </View>
           </View>
         </SafeAreaView>
       </View>
 
+      {/* Content */}
       <View style={styles.formContainer}>
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#002D72" />}
         >
-          {/* Account Cards */}
           <View style={styles.cardScrollWrapper}>
             {IS_WIDE ? (
               <View style={{ alignItems: "center", paddingHorizontal: 20 }}>{accounts.map(renderCard)}</View>
             ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}
-                snapToInterval={CARD_WIDTH + 16} decelerationRate="fast"
-                contentContainerStyle={{ paddingHorizontal: 20 }}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={CARD_WIDTH + 16} decelerationRate="fast" contentContainerStyle={{ paddingHorizontal: 20 }}>
                 {accounts.map(renderCard)}
               </ScrollView>
             )}
           </View>
 
-          {/* Quick Actions with COMING SOON badges */}
           <View style={styles.whiteCard}>
             <View style={styles.actionGrid}>
               {quickActions.map((item, i) => (
-                <TouchableOpacity
-                  key={i}
-                  disabled={!item.active}
-                  style={[styles.actionBtn, !item.active && { opacity: 0.45 }]}
-                  onPress={() => item.route && navigation.navigate(item.route)}
-                >
+                <TouchableOpacity key={i} disabled={!item.active} style={[styles.actionBtn, !item.active && { opacity: 0.45 }]} onPress={() => item.route && navigation.navigate(item.route)}>
                   <View style={{ position: "relative" }}>
                     <View style={[styles.actionIconBox, { backgroundColor: item.active ? `${item.color}18` : "#F1F5F9" }]}>
                       <item.icon size={22} color={item.active ? item.color : "#94A3B8"} />
@@ -306,7 +321,6 @@ export default function HomeScreen({ navigation }: any) {
             </View>
           </View>
 
-          {/* Refer & Earn Banner */}
           <TouchableOpacity style={styles.promoBanner} onPress={() => navigation.navigate("ReferEarn")}>
             <View style={styles.promoContent}>
               <View style={styles.promoIcon}><Heart size={20} color="#FFF" /></View>
@@ -321,7 +335,6 @@ export default function HomeScreen({ navigation }: any) {
             </View>
           </TouchableOpacity>
 
-          {/* Recent Activity */}
           <View style={styles.activitySection}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionLabel}>RECENT ACTIVITY</Text>
@@ -345,9 +358,7 @@ export default function HomeScreen({ navigation }: any) {
                     {tx.date ? <Text style={styles.txDate}>{tx.date}</Text> : null}
                   </View>
                   {tx.amt ? (
-                    <Text style={[styles.txAmt, { color: tx.amt.includes("+") ? "#10B981" : "#1E293B" }]}>
-                      {tx.amt}
-                    </Text>
+                    <Text style={[styles.txAmt, { color: tx.amt.includes("+") ? "#10B981" : "#1E293B" }]}>{tx.amt}</Text>
                   ) : null}
                 </View>
               ))
@@ -364,17 +375,14 @@ export default function HomeScreen({ navigation }: any) {
       {/* Bottom Tab */}
       <View style={styles.bottomTab}>
         {[
-          { label: "HOME",     icon: Home,        route: "Dashboard", active: true },
-          { label: "PAYMENTS", icon: Wallet,      route: "Payments",  active: false },
-          { label: "CARDS",    icon: CreditCard,  route: "Cards",     active: false },
-          { label: "INVEST",   icon: Zap,         route: "Invest",    active: false },
-          { label: "MORE",     icon: LayoutGrid,  route: "Profile",   active: false },
+          { label: "HOME",     icon: Home,       route: "Dashboard", active: true },
+          { label: "PAYMENTS", icon: Wallet,     route: "Payments",  active: false },
+          { label: "CARDS",    icon: CreditCard, route: "Cards",     active: false },
+          { label: "INVEST",   icon: Zap,        route: "Invest",    active: false },
+          { label: "MORE",     icon: LayoutGrid, route: "Profile",   active: false },
         ].map((tab, i) => (
           <TouchableOpacity key={i} style={styles.tabItem} onPress={() => navigation.navigate(tab.route)}>
-            <View style={{ position: "relative" }}>
-              <tab.icon size={22} color={tab.active ? "#002D72" : "#94A3B8"} />
-              {/* No SOON badge on bottom nav — it's too cramped */}
-            </View>
+            <tab.icon size={22} color={tab.active ? "#002D72" : "#94A3B8"} />
             <Text style={[styles.tabText, tab.active && { color: "#002D72" }]}>{tab.label}</Text>
           </TouchableOpacity>
         ))}
@@ -394,6 +402,38 @@ const styles = StyleSheet.create({
   greetingText: { fontSize: 11, color: "rgba(255,255,255,0.65)", fontWeight: "600" },
   headerIcons: { flexDirection: "row", gap: 8 },
   iconCircle: { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.15)", justifyContent: "center", alignItems: "center" },
+  logoutBtn: { backgroundColor: "rgba(239,68,68,0.2)" },
+
+  // Inline logout confirmation overlay
+  logoutOverlay: {
+    position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.55)", zIndex: 999,
+    justifyContent: "center", alignItems: "center",
+  },
+  logoutDialog: {
+    backgroundColor: "#FFF", borderRadius: 28, padding: 28,
+    width: "85%", maxWidth: 340, alignItems: "center",
+    shadowColor: "#000", shadowOpacity: 0.3, shadowRadius: 20, elevation: 20,
+  },
+  logoutIconBox: {
+    width: 60, height: 60, borderRadius: 20,
+    backgroundColor: "#FEF2F2",
+    justifyContent: "center", alignItems: "center", marginBottom: 16,
+  },
+  logoutDialogTitle: { fontSize: 20, fontWeight: "900", color: "#1E293B", marginBottom: 8 },
+  logoutDialogMsg:   { fontSize: 14, color: "#64748B", textAlign: "center", lineHeight: 22, marginBottom: 24 },
+  logoutDialogBtns:  { flexDirection: "row", gap: 12, width: "100%" },
+  logoutCancelBtn: {
+    flex: 1, height: 50, borderRadius: 16, justifyContent: "center", alignItems: "center",
+    backgroundColor: "#F1F5F9", borderWidth: 1, borderColor: "#E2E8F0",
+  },
+  logoutCancelText: { fontSize: 15, fontWeight: "800", color: "#64748B" },
+  logoutConfirmBtn: {
+    flex: 1, height: 50, borderRadius: 16, justifyContent: "center", alignItems: "center",
+    backgroundColor: "#EF4444",
+  },
+  logoutConfirmText: { fontSize: 15, fontWeight: "800", color: "#FFF" },
+
   formContainer: { flex: 1, backgroundColor: "#E8F4FD" },
   scrollContent: { paddingBottom: 110, paddingTop: 20 },
   cardScrollWrapper: { paddingVertical: 10 },

@@ -6,7 +6,7 @@ import {
 } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
-  Alert, SafeAreaView, ScrollView, StatusBar,
+  Alert, Platform, SafeAreaView, ScrollView, StatusBar,
   StyleSheet, Text, TouchableOpacity, View,
 } from "react-native";
 import { authService } from "../services/authService";
@@ -75,22 +75,23 @@ export default function Profile({ navigation }: any) {
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Logout", style: "destructive",
-        onPress: async () => {
-          try {
-            await authService.logout();
-            await AsyncStorage.removeItem("profile_cache");
-          } catch { /* ignore */ }
-          // Navigate regardless — even if logout API fails, clear local session
-          navigation.reset({ index: 0, routes: [{ name: "Login" }] });
-        },
-      },
-    ]);
+  const [showLogoutConfirm, setShowLogoutConfirm] = React.useState(false);
+  const [loggingOut, setLoggingOut] = React.useState(false);
+
+  const doLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await authService.logout();
+      await AsyncStorage.removeItem("profile_cache");
+    } catch { /* ignore */ }
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      window.location.href = "/";
+      return;
+    }
+    navigation.reset({ index: 0, routes: [{ name: "Login" }] });
   };
+
+  const handleLogout = () => setShowLogoutConfirm(true);
 
   const getInitials = (name: string) => {
     if (!name) return "?";
@@ -114,6 +115,28 @@ export default function Profile({ navigation }: any) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
+
+      {/* Inline logout confirm — Alert.alert doesn't work on web */}
+      {showLogoutConfirm && (
+        <View style={styles.logoutOverlay}>
+          <View style={styles.logoutDialog}>
+            <View style={styles.logoutIconBox}>
+              <LogOut size={28} color="#EF4444" />
+            </View>
+            <Text style={styles.logoutDialogTitle}>Logout</Text>
+            <Text style={styles.logoutDialogMsg}>Are you sure you want to logout?</Text>
+            <View style={styles.logoutDialogBtns}>
+              <TouchableOpacity style={styles.logoutCancelBtn} onPress={() => setShowLogoutConfirm(false)} disabled={loggingOut}>
+                <Text style={styles.logoutCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.logoutConfirmBtn, loggingOut && { opacity: 0.6 }]} onPress={doLogout} disabled={loggingOut}>
+                {loggingOut ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={styles.logoutConfirmText}>Logout</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
       <ScrollView style={styles.container} bounces={false} showsVerticalScrollIndicator={false}>
 
         {/* Header */}
@@ -285,4 +308,14 @@ const styles = StyleSheet.create({
   logoutBtn: { height: 60, backgroundColor: "#FEF2F2", borderRadius: 20, flexDirection: "row", justifyContent: "center", alignItems: "center" },
   logoutText: { color: "#EF4444", fontWeight: "900", fontSize: 14, letterSpacing: 1 },
   versionText: { textAlign: "center", color: "#94A3B8", fontSize: 10, fontWeight: "700", marginTop: 20, letterSpacing: 1 },
+  logoutOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.55)", zIndex: 999, justifyContent: "center", alignItems: "center" },
+  logoutDialog: { backgroundColor: "#FFF", borderRadius: 28, padding: 28, width: "85%", maxWidth: 340, alignItems: "center", shadowColor: "#000", shadowOpacity: 0.3, shadowRadius: 20, elevation: 20 },
+  logoutIconBox: { width: 60, height: 60, borderRadius: 20, backgroundColor: "#FEF2F2", justifyContent: "center", alignItems: "center", marginBottom: 16 },
+  logoutDialogTitle: { fontSize: 20, fontWeight: "900", color: "#1E293B", marginBottom: 8 },
+  logoutDialogMsg: { fontSize: 14, color: "#64748B", textAlign: "center", lineHeight: 22, marginBottom: 24 },
+  logoutDialogBtns: { flexDirection: "row", gap: 12, width: "100%" },
+  logoutCancelBtn: { flex: 1, height: 50, borderRadius: 16, justifyContent: "center", alignItems: "center", backgroundColor: "#F1F5F9", borderWidth: 1, borderColor: "#E2E8F0" },
+  logoutCancelText: { fontSize: 15, fontWeight: "800", color: "#64748B" },
+  logoutConfirmBtn: { flex: 1, height: 50, borderRadius: 16, justifyContent: "center", alignItems: "center", backgroundColor: "#EF4444" },
+  logoutConfirmText: { fontSize: 15, fontWeight: "800", color: "#FFF" },
 });
