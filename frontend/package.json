@@ -8,7 +8,8 @@
     "web": "expo start --web",
     "build": "expo export --platform web",
     "android": "expo run:android",
-    "ios": "expo run:ios"
+    "ios": "expo run:ios",
+    "postbuild": "node scripts/inject-mobile-frame.js"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",

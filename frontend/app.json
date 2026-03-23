@@ -23,7 +23,9 @@
       "package": "com.anonymous.mobilebankingfinal"
     },
     "web": {
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "bundler": "metro",
+      "output": "static"
     },
     "plugins": [
       [
