@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-  ArrowUpRight, Bell, ChevronRight, CreditCard, Eye, EyeOff, LogOut,
-  FileText, Globe, Heart, Home, LayoutGrid, ScanLine, Search,
+  ArrowUpRight, Bell, Clock, ChevronRight, CreditCard, Eye, EyeOff, LogOut,
+  FileText, Globe, X, Heart, Home, LayoutGrid, ScanLine,
   ShieldCheck, Smartphone, TrendingUp, Wallet, Zap,
 } from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from "react";
@@ -49,6 +49,8 @@ export default function HomeScreen({ navigation }: any) {
   // Inline logout confirmation — avoids Alert.alert which doesn't work on web
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [loggingOut,        setLoggingOut]         = useState(false);
+  const [showNotifications, setShowNotifications]  = useState(false);
+  const [showComingSoon,    setShowComingSoon]      = useState(false);
 
   const txIcons  = [CreditCard, Zap, Wallet, FileText, Smartphone];
   const txColors = ["#F472B6", "#FB923C", "#4ADE80", "#60A5FA", "#A78BFA"];
@@ -194,7 +196,7 @@ export default function HomeScreen({ navigation }: any) {
             </View>
           </View>
           <View style={{ flexDirection: "row", gap: 10 }}>
-            <TouchableOpacity style={styles.cardActionCircle}><CreditCard size={18} color="#FFF" /></TouchableOpacity>
+            <TouchableOpacity style={styles.cardActionCircle} onPress={() => navigation.navigate("Cards")}><CreditCard size={18} color="#FFF" /></TouchableOpacity>
             <TouchableOpacity style={styles.cardActionCircle} onPress={() => navigation.navigate("Invest")}><TrendingUp size={18} color="#FFF" /></TouchableOpacity>
           </View>
         </View>
@@ -213,13 +215,13 @@ export default function HomeScreen({ navigation }: any) {
 
   const quickActions = [
     { label: "Send Money", icon: ArrowUpRight, color: "#3B82F6", route: "Transfer", active: true },
-    { label: "Scan & Pay", icon: ScanLine,    color: "#10B981", route: "",          active: false },
-    { label: "Pay Bills",  icon: FileText,    color: "#F59E0B", route: "",          active: false },
-    { label: "Recharge",   icon: Smartphone,  color: "#8B5CF6", route: "",          active: false },
-    { label: "FASTag",     icon: Zap,         color: "#EF4444", route: "",          active: false },
+    { label: "Scan & Pay", icon: ScanLine,    color: "#CBD5E1", route: "",          active: false },
+    { label: "Pay Bills",  icon: FileText,    color: "#CBD5E1", route: "",          active: false },
+    { label: "Recharge",   icon: Smartphone,  color: "#CBD5E1", route: "",          active: false },
+    { label: "FASTag",     icon: Zap,         color: "#CBD5E1", route: "",          active: false },
     { label: "Invest",     icon: Globe,       color: "#06B6D4", route: "Invest",    active: true },
-    { label: "Insurance",  icon: ShieldCheck, color: "#F43F5E", route: "",          active: false },
-    { label: "Loans",      icon: LayoutGrid,  color: "#6366F1", route: "",          active: false },
+    { label: "Insurance",  icon: ShieldCheck, color: "#CBD5E1", route: "",          active: false },
+    { label: "Loans",      icon: LayoutGrid,  color: "#CBD5E1", route: "",          active: false },
   ];
 
   return (
@@ -260,6 +262,55 @@ export default function HomeScreen({ navigation }: any) {
         </View>
       )}
 
+      {/* Notification dropdown */}
+      {showNotifications && (
+        <View style={styles.notifOverlay}>
+          <TouchableOpacity style={styles.notifBackdrop} onPress={() => setShowNotifications(false)} activeOpacity={1} />
+          <View style={styles.notifDropdown}>
+            <View style={styles.notifHeader}>
+              <Text style={styles.notifTitle}>Notifications</Text>
+              <TouchableOpacity onPress={() => setShowNotifications(false)}><X size={18} color="#64748B" /></TouchableOpacity>
+            </View>
+            {recentTransactions.length === 0 ? (
+              <View style={styles.notifEmpty}>
+                <Bell size={28} color="#CBD5E1" />
+                <Text style={styles.notifEmptyText}>No recent activity</Text>
+              </View>
+            ) : (
+              recentTransactions.map((tx, i) => (
+                <TouchableOpacity key={i} style={styles.notifItem} onPress={() => { setShowNotifications(false); navigation.navigate("Transactions"); }}>
+                  <View style={[styles.notifDot, { backgroundColor: tx.amt?.includes("+") ? "#10B981" : "#F472B6" }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.notifItemTitle} numberOfLines={1}>{tx.title}</Text>
+                    <Text style={styles.notifItemDate}>{tx.date}</Text>
+                  </View>
+                  <Text style={[styles.notifAmt, { color: tx.amt?.includes("+") ? "#10B981" : "#EF4444" }]}>{tx.amt}</Text>
+                </TouchableOpacity>
+              ))
+            )}
+            <TouchableOpacity style={styles.notifFooter} onPress={() => { setShowNotifications(false); navigation.navigate("Transactions"); }}>
+              <Text style={styles.notifFooterText}>View all transactions →</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Coming Soon popup */}
+      {showComingSoon && (
+        <View style={styles.logoutOverlay}>
+          <View style={styles.logoutDialog}>
+            <View style={[styles.logoutIconBox, { backgroundColor: "#FEF3C7" }]}>
+              <Clock size={28} color="#D97706" />
+            </View>
+            <Text style={styles.logoutDialogTitle}>Coming Soon</Text>
+            <Text style={styles.logoutDialogMsg}>This feature is still under development and will be live soon. Stay tuned!</Text>
+            <TouchableOpacity style={[styles.logoutConfirmBtn, { flex: 0, paddingHorizontal: 40, backgroundColor: "#0EA5E9" }]} onPress={() => setShowComingSoon(false)}>
+              <Text style={styles.logoutConfirmText}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       {/* Header */}
       <View style={styles.brandingSection}>
         <SafeAreaView edges={["top"]}>
@@ -274,8 +325,12 @@ export default function HomeScreen({ navigation }: any) {
               </View>
             </View>
             <View style={styles.headerIcons}>
-              <TouchableOpacity style={styles.iconCircle}><Search size={20} color="#FFF" /></TouchableOpacity>
-              <TouchableOpacity style={styles.iconCircle}><Bell size={20} color="#FFF" /></TouchableOpacity>
+              <TouchableOpacity style={styles.iconCircle} onPress={() => { setShowLogoutConfirm(false); setShowComingSoon(false); setShowNotifications(v => !v); }}>
+                <Bell size={20} color="#FFF" />
+                {recentTransactions.length > 0 && (
+                  <View style={styles.notifBadge}><Text style={styles.notifBadgeText}>{recentTransactions.length}</Text></View>
+                )}
+              </TouchableOpacity>
               {/* Logout button — uses inline confirm, not Alert.alert (broken on web) */}
               <TouchableOpacity
                 style={[styles.iconCircle, styles.logoutBtn]}
@@ -308,14 +363,20 @@ export default function HomeScreen({ navigation }: any) {
           <View style={styles.whiteCard}>
             <View style={styles.actionGrid}>
               {quickActions.map((item, i) => (
-                <TouchableOpacity key={i} disabled={!item.active} style={[styles.actionBtn, !item.active && { opacity: 0.45 }]} onPress={() => item.route && navigation.navigate(item.route)}>
-                  <View style={{ position: "relative" }}>
-                    <View style={[styles.actionIconBox, { backgroundColor: item.active ? `${item.color}18` : "#F1F5F9" }]}>
-                      <item.icon size={22} color={item.active ? item.color : "#94A3B8"} />
+                <TouchableOpacity
+                  key={i}
+                  style={styles.actionBtn}
+                  onPress={() => {
+                    if (item.active && item.route) navigation.navigate(item.route);
+                    else if (!item.active) setShowComingSoon(true);
+                  }}
+                >
+                  <View style={item.active ? styles.activeRing : styles.inactiveWrap}>
+                    <View style={[styles.actionIconBox, { backgroundColor: item.active ? `${item.color}15` : "#F8FAFC" }]}>
+                      <item.icon size={22} color={item.active ? item.color : "#CBD5E1"} />
                     </View>
-                    {!item.active && <ComingSoonBadge />}
                   </View>
-                  <Text style={[styles.actionText, !item.active && { color: "#94A3B8" }]}>{item.label}</Text>
+                  <Text style={[styles.actionText, !item.active && { color: "#CBD5E1" }]}>{item.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>

@@ -1,6 +1,6 @@
 import {
-  ArrowLeft, Building2, Car, ChevronRight, CreditCard,
-  Droplets, GraduationCap, QrCode, Receipt, Search,
+  ArrowLeft, Building2, Car, ChevronRight, Clock, CreditCard,
+  Droplets, GraduationCap, Info, QrCode, Receipt, Search,
   Send, Smartphone, Wifi, Zap,
 } from "lucide-react-native";
 import React, { useState } from "react";
@@ -27,7 +27,8 @@ const csBadge = StyleSheet.create({
 });
 
 export default function Payments({ navigation }: any) {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery,    setSearchQuery]    = useState("");
+  const [showComingSoon, setShowComingSoon] = useState(false);
 
   const billCategories = [
     { icon: Smartphone,    label: "Mobile",    active: false },
@@ -43,6 +44,21 @@ export default function Payments({ navigation }: any) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor="#002D72" />
+
+
+      {/* Coming Soon popup */}
+      {showComingSoon && (
+        <View style={cs.overlay}>
+          <View style={cs.dialog}>
+            <View style={cs.iconBox}><Clock size={28} color="#D97706" /></View>
+            <Text style={cs.title}>Coming Soon</Text>
+            <Text style={cs.msg}>This feature is still under development and will be live soon.</Text>
+            <TouchableOpacity style={cs.btn} onPress={() => setShowComingSoon(false)}>
+              <Text style={cs.btnText}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       <ScrollView style={styles.container} bounces={false} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
@@ -64,6 +80,14 @@ export default function Payments({ navigation }: any) {
           </View>
         </View>
 
+        {/* Fix 5: Only Send Money works notice */}
+        <View style={styles.noticeBanner}>
+          <Info size={16} color="#0369A1" />
+          <Text style={styles.noticeText}>
+            Only <Text style={{ fontWeight: "900" }}>Send Money</Text> is live. All other features are in development.
+          </Text>
+        </View>
+
         {/* Quick Actions */}
         <View style={styles.actionCardWrapper}>
           <View style={styles.actionCard}>
@@ -76,7 +100,7 @@ export default function Payments({ navigation }: any) {
             </TouchableOpacity>
 
             {/* Scan & Pay — COMING SOON */}
-            <TouchableOpacity style={[styles.actionBtn, styles.navyBtn, { opacity: 0.5 }]} disabled>
+            <TouchableOpacity style={[styles.actionBtn, styles.navyBtn, { opacity: 0.5 }]} onPress={() => setShowComingSoon(true)}>
               <View style={{ position: "relative" }}>
                 <View style={[styles.actionIconCircle, { backgroundColor: "#002D72" }]}>
                   <QrCode size={20} color="#FFF" />
@@ -93,7 +117,7 @@ export default function Payments({ navigation }: any) {
           <Text style={styles.sectionTitle}>RECHARGE & PAY BILLS</Text>
           <View style={styles.grid}>
             {billCategories.map((cat, i) => (
-              <TouchableOpacity key={i} style={[styles.gridItem, { opacity: 0.5 }]} disabled>
+              <TouchableOpacity key={i} style={[styles.gridItem, { opacity: 0.5 }]} onPress={() => setShowComingSoon(true)}>
                 <View style={{ position: "relative" }}>
                   <View style={styles.gridIconBox}>
                     <cat.icon size={24} color="#94A3B8" />
@@ -216,4 +240,16 @@ const styles = StyleSheet.create({
   },
   recentRight: { flexDirection: "row", alignItems: "center", gap: 4 },
   viewAllText: { fontSize: 12, color: "#0EA5E9", fontWeight: "bold" },
+  noticeBanner: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#E0F2FE", margin: 20, marginBottom: 0, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: "#BAE6FD" },
+  noticeText: { flex: 1, fontSize: 13, color: "#0369A1", fontWeight: "600", lineHeight: 18 },
+});
+
+const cs = StyleSheet.create({
+  overlay:  { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.55)", zIndex: 999, justifyContent: "center", alignItems: "center" },
+  dialog:   { backgroundColor: "#FFF", borderRadius: 28, padding: 28, width: "85%", maxWidth: 320, alignItems: "center" },
+  iconBox:  { width: 56, height: 56, borderRadius: 18, backgroundColor: "#FEF3C7", justifyContent: "center", alignItems: "center", marginBottom: 14 },
+  title:    { fontSize: 18, fontWeight: "900", color: "#1E293B", marginBottom: 8 },
+  msg:      { fontSize: 13, color: "#64748B", textAlign: "center", lineHeight: 20, marginBottom: 22 },
+  btn:      { height: 48, paddingHorizontal: 36, borderRadius: 14, justifyContent: "center", alignItems: "center", backgroundColor: "#0EA5E9" },
+  btnText:  { color: "#FFF", fontWeight: "800", fontSize: 14 },
 });
