@@ -196,8 +196,12 @@ export default function HomeScreen({ navigation }: any) {
             </View>
           </View>
           <View style={{ flexDirection: "row", gap: 10 }}>
-            <TouchableOpacity style={styles.cardActionCircle} onPress={() => navigation.navigate("Cards")}><CreditCard size={18} color="#FFF" /></TouchableOpacity>
-            <TouchableOpacity style={styles.cardActionCircle} onPress={() => navigation.navigate("Invest")}><TrendingUp size={18} color="#FFF" /></TouchableOpacity>
+            <TouchableOpacity style={styles.cardCircleRing} onPress={() => navigation.navigate("Cards")}>
+              <CreditCard size={16} color="#FFF" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.cardCircleRing} onPress={() => navigation.navigate("Invest")}>
+              <TrendingUp size={16} color="#FFF" />
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -354,18 +358,22 @@ export default function HomeScreen({ navigation }: any) {
               </View>
             </View>
             <View style={styles.headerIcons}>
-              <TouchableOpacity style={styles.iconCircle} onPress={() => { setShowLogoutConfirm(false); setShowComingSoon(false); setShowNotifications(v => !v); }}>
+              {/* Bell — orange ring, working */}
+              <TouchableOpacity
+                style={styles.headerRingBtn}
+                onPress={() => { setShowLogoutConfirm(false); setShowComingSoon(false); setShowNotifications(v => !v); }}
+              >
                 <Bell size={20} color="#FFF" />
                 {recentTransactions.length > 0 && (
                   <View style={styles.notifBadge}><Text style={styles.notifBadgeText}>{recentTransactions.length}</Text></View>
                 )}
               </TouchableOpacity>
-              {/* Logout button — uses inline confirm, not Alert.alert (broken on web) */}
+              {/* Logout — same ring style, consistent with UI */}
               <TouchableOpacity
-                style={[styles.iconCircle, styles.logoutBtn]}
+                style={styles.headerRingBtn}
                 onPress={() => setShowLogoutConfirm(true)}
               >
-                <LogOut size={20} color="#FFA0A0" />
+                <LogOut size={20} color="#FFF" />
               </TouchableOpacity>
             </View>
           </View>
@@ -435,7 +443,7 @@ export default function HomeScreen({ navigation }: any) {
                 <Text style={styles.promoTitle}>Refer & Earn ₹500</Text>
                 <Text style={styles.promoSub}>Invite friends and earn rewards</Text>
               </View>
-              <View style={styles.joinBtn}>
+              <View style={styles.joinRing}>
                 <Text style={styles.joinText}>JOIN</Text>
                 <ChevronRight size={14} color="#FFF" />
               </View>
@@ -445,8 +453,8 @@ export default function HomeScreen({ navigation }: any) {
           <View style={styles.activitySection}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionLabel}>RECENT ACTIVITY</Text>
-              <TouchableOpacity onPress={() => navigation.navigate("Transactions")}>
-                <Text style={styles.viewAll}>View All</Text>
+              <TouchableOpacity style={styles.viewAllRing} onPress={() => navigation.navigate("Transactions")}>
+                <Text style={styles.viewAllText}>View All</Text>
               </TouchableOpacity>
             </View>
             {recentTransactions.length === 0 ? (
@@ -482,17 +490,22 @@ export default function HomeScreen({ navigation }: any) {
       {/* Bottom Tab */}
       <View style={styles.bottomTab}>
         {[
-          { label: "HOME",     icon: Home,       route: "Dashboard", active: true },
-          { label: "PAYMENTS", icon: Wallet,     route: "Payments",  active: false },
-          { label: "CARDS",    icon: CreditCard, route: "Cards",     active: false },
-          { label: "INVEST",   icon: Zap,        route: "Invest",    active: false },
-          { label: "MORE",     icon: LayoutGrid, route: "Profile",   active: false },
-        ].map((tab, i) => (
-          <TouchableOpacity key={i} style={styles.tabItem} onPress={() => navigation.navigate(tab.route)}>
-            <tab.icon size={22} color={tab.active ? "#002D72" : "#94A3B8"} />
-            <Text style={[styles.tabText, tab.active && { color: "#002D72" }]}>{tab.label}</Text>
-          </TouchableOpacity>
-        ))}
+          { label: "HOME",     icon: Home,       route: "Dashboard" },
+          { label: "PAYMENTS", icon: Wallet,     route: "Payments"  },
+          { label: "CARDS",    icon: CreditCard, route: "Cards"     },
+          { label: "INVEST",   icon: Zap,        route: "Invest"    },
+          { label: "MORE",     icon: LayoutGrid, route: "Profile"   },
+        ].map((tab, i) => {
+          const isCurrent = tab.route === "Dashboard";
+          return (
+            <TouchableOpacity key={i} style={styles.tabItem} onPress={() => navigation.navigate(tab.route)}>
+              <View style={isCurrent ? styles.tabRingActive : styles.tabRing}>
+                <tab.icon size={20} color={isCurrent ? "#F97316" : "#64748B"} />
+              </View>
+              <Text style={[styles.tabText, isCurrent && { color: "#F97316" }]}>{tab.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </View>
   );
@@ -652,4 +665,53 @@ const styles = StyleSheet.create({
   // ── Active icon orange ring / inactive wrapper ─────────────────────────
   activeRing:  { borderRadius: 32, borderWidth: 2, borderColor: "#F97316", padding: 3, marginBottom: 6 },
   inactiveWrap:{ marginBottom: 6 },
+
+  // ── Header ring buttons (Bell + Logout) — consistent orange ring ─────────
+  headerRingBtn: {
+    width: 42, height: 42, borderRadius: 21,
+    borderWidth: 2, borderColor: "#F97316",
+    backgroundColor: "rgba(255,255,255,0.1)",
+    justifyContent: "center", alignItems: "center",
+    position: "relative",
+  },
+
+  // ── Card action circles — orange ring ─────────────────────────────────
+  cardCircleRing: {
+    width: 38, height: 38, borderRadius: 19,
+    borderWidth: 2, borderColor: "#F97316",
+    backgroundColor: "rgba(255,255,255,0.12)",
+    justifyContent: "center", alignItems: "center",
+  },
+
+  // ── JOIN button ring ──────────────────────────────────────────────────
+  joinRing: {
+    flexDirection: "row", alignItems: "center",
+    borderWidth: 2, borderColor: "#F97316",
+    borderRadius: 20,
+    paddingHorizontal: 14, paddingVertical: 7,
+    backgroundColor: "rgba(249,115,22,0.15)",
+  },
+
+  // ── View All ring ─────────────────────────────────────────────────────
+  viewAllRing: {
+    borderWidth: 2, borderColor: "#F97316",
+    borderRadius: 14,
+    paddingHorizontal: 12, paddingVertical: 5,
+  },
+  viewAllText: { fontSize: 12, color: "#F97316", fontWeight: "800" },
+
+  // ── Bottom tab ring styles ─────────────────────────────────────────────
+  tabRing: {
+    width: 42, height: 42, borderRadius: 21,
+    borderWidth: 2, borderColor: "#F97316",
+    justifyContent: "center", alignItems: "center",
+    marginBottom: 2,
+  },
+  tabRingActive: {
+    width: 42, height: 42, borderRadius: 21,
+    borderWidth: 2, borderColor: "#F97316",
+    backgroundColor: "rgba(249,115,22,0.08)",
+    justifyContent: "center", alignItems: "center",
+    marginBottom: 2,
+  },
 });
