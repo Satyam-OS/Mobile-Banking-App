@@ -53,13 +53,7 @@ const INJECTION = `
       background:linear-gradient(155deg,rgba(255,255,255,0.05) 0%,transparent 40%);
       pointer-events:none; z-index:10001;
     }
-    /* dynamic island */
-    .phone-frame::after {
-      content:""; position:absolute; top:12px; left:50%; transform:translateX(-50%);
-      width:120px; height:34px; background:#000; border-radius:20px;
-      z-index:10002; pointer-events:none;
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.07);
-    }
+    /* Dynamic Island removed — was obscuring content */
     /* 
       THE REAL FIX:
       React Native Web reads window.innerWidth at startup. On desktop this is ~1500px.

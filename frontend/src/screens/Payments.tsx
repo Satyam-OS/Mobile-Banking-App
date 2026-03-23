@@ -9,7 +9,10 @@ import {
   StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from "react-native";
 
-const { width } = Dimensions.get("window");
+// Use fixed phone width so grid always shows 4 columns regardless of browser width
+const PHONE_WIDTH = 393;
+const { width: _w } = Dimensions.get("window");
+const width = Math.min(_w, PHONE_WIDTH);
 
 export default function Payments({ navigation }: any) {
   const [searchQuery,    setSearchQuery]    = useState("");
@@ -230,7 +233,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 11, fontWeight: "900", color: "#64748B", letterSpacing: 1.5, marginBottom: 14 },
   sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  gridItem: { alignItems: "center", width: (width - 70) / 4 },
+  gridItem: { alignItems: "center", width: "23%", marginHorizontal: "1%" },
   gridIconBox: {
     width: 56, height: 56, borderRadius: 18,
     backgroundColor: "#FFF", justifyContent: "center", alignItems: "center",
