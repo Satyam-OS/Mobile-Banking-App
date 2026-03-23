@@ -215,13 +215,13 @@ export default function HomeScreen({ navigation }: any) {
 
   const quickActions = [
     { label: "Send Money", icon: ArrowUpRight, color: "#3B82F6", route: "Transfer", active: true },
-    { label: "Scan & Pay", icon: ScanLine,    color: "#CBD5E1", route: "",          active: false },
-    { label: "Pay Bills",  icon: FileText,    color: "#CBD5E1", route: "",          active: false },
-    { label: "Recharge",   icon: Smartphone,  color: "#CBD5E1", route: "",          active: false },
-    { label: "FASTag",     icon: Zap,         color: "#CBD5E1", route: "",          active: false },
+    { label: "Scan & Pay", icon: ScanLine,    color: "#10B981", route: "",          active: false },
+    { label: "Pay Bills",  icon: FileText,    color: "#F59E0B", route: "",          active: false },
+    { label: "Recharge",   icon: Smartphone,  color: "#8B5CF6", route: "",          active: false },
+    { label: "FASTag",     icon: Zap,         color: "#EF4444", route: "",          active: false },
     { label: "Invest",     icon: Globe,       color: "#06B6D4", route: "Invest",    active: true },
-    { label: "Insurance",  icon: ShieldCheck, color: "#CBD5E1", route: "",          active: false },
-    { label: "Loans",      icon: LayoutGrid,  color: "#CBD5E1", route: "",          active: false },
+    { label: "Insurance",  icon: ShieldCheck, color: "#F43F5E", route: "",          active: false },
+    { label: "Loans",      icon: LayoutGrid,  color: "#6366F1", route: "",          active: false },
   ];
 
   return (
@@ -262,33 +262,57 @@ export default function HomeScreen({ navigation }: any) {
         </View>
       )}
 
-      {/* Notification dropdown */}
+      {/* Notification dropdown — white card, professional */}
       {showNotifications && (
         <View style={styles.notifOverlay}>
           <TouchableOpacity style={styles.notifBackdrop} onPress={() => setShowNotifications(false)} activeOpacity={1} />
           <View style={styles.notifDropdown}>
+            {/* Header */}
             <View style={styles.notifHeader}>
-              <Text style={styles.notifTitle}>Notifications</Text>
-              <TouchableOpacity onPress={() => setShowNotifications(false)}><X size={18} color="#64748B" /></TouchableOpacity>
+              <View>
+                <Text style={styles.notifTitle}>Notifications</Text>
+                <Text style={styles.notifSubtitle}>Recent account activity</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowNotifications(false)}>
+                <X size={18} color="#64748B" />
+              </TouchableOpacity>
             </View>
+
+            {/* Items */}
             {recentTransactions.length === 0 ? (
               <View style={styles.notifEmpty}>
-                <Bell size={28} color="#CBD5E1" />
+                <Bell size={32} color="#CBD5E1" />
                 <Text style={styles.notifEmptyText}>No recent activity</Text>
               </View>
             ) : (
-              recentTransactions.map((tx, i) => (
-                <TouchableOpacity key={i} style={styles.notifItem} onPress={() => { setShowNotifications(false); navigation.navigate("Transactions"); }}>
-                  <View style={[styles.notifDot, { backgroundColor: tx.amt?.includes("+") ? "#10B981" : "#F472B6" }]} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.notifItemTitle} numberOfLines={1}>{tx.title}</Text>
-                    <Text style={styles.notifItemDate}>{tx.date}</Text>
-                  </View>
-                  <Text style={[styles.notifAmt, { color: tx.amt?.includes("+") ? "#10B981" : "#EF4444" }]}>{tx.amt}</Text>
-                </TouchableOpacity>
-              ))
+              recentTransactions.map((tx, i) => {
+                const isCredit = tx.amt?.includes("+");
+                return (
+                  <TouchableOpacity
+                    key={i}
+                    style={styles.notifItem}
+                    onPress={() => { setShowNotifications(false); navigation.navigate("Transactions"); }}
+                  >
+                    <View style={[styles.notifIconBox, { backgroundColor: isCredit ? "#F0FDF4" : "#FEF2F2" }]}>
+                      <tx.icon size={16} color={isCredit ? "#10B981" : "#F43F5E"} />
+                    </View>
+                    <View style={styles.notifContent}>
+                      <Text style={styles.notifItemTitle} numberOfLines={1}>{tx.title}</Text>
+                      <Text style={styles.notifItemDate}>{tx.date}</Text>
+                    </View>
+                    <Text style={[styles.notifAmt, { color: isCredit ? "#10B981" : "#EF4444" }]}>
+                      {tx.amt}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })
             )}
-            <TouchableOpacity style={styles.notifFooter} onPress={() => { setShowNotifications(false); navigation.navigate("Transactions"); }}>
+
+            {/* Footer */}
+            <TouchableOpacity
+              style={styles.notifFooter}
+              onPress={() => { setShowNotifications(false); navigation.navigate("Transactions"); }}
+            >
               <Text style={styles.notifFooterText}>View all transactions →</Text>
             </TouchableOpacity>
           </View>
@@ -303,9 +327,14 @@ export default function HomeScreen({ navigation }: any) {
               <Clock size={28} color="#D97706" />
             </View>
             <Text style={styles.logoutDialogTitle}>Coming Soon</Text>
-            <Text style={styles.logoutDialogMsg}>This feature is still under development and will be live soon. Stay tuned!</Text>
-            <TouchableOpacity style={[styles.logoutConfirmBtn, { flex: 0, paddingHorizontal: 40, backgroundColor: "#0EA5E9" }]} onPress={() => setShowComingSoon(false)}>
-              <Text style={styles.logoutConfirmText}>Got it</Text>
+            <Text style={styles.logoutDialogMsg}>
+              This feature is still under development and will be live soon. Stay tuned!
+            </Text>
+            <TouchableOpacity
+              style={{ height: 50, paddingHorizontal: 48, borderRadius: 16, backgroundColor: "#0EA5E9", justifyContent: "center", alignItems: "center" }}
+              onPress={() => setShowComingSoon(false)}
+            >
+              <Text style={{ color: "#FFF", fontWeight: "800", fontSize: 15 }}>Got it</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -361,6 +390,13 @@ export default function HomeScreen({ navigation }: any) {
           </View>
 
           <View style={styles.whiteCard}>
+            {/* "Only circled buttons are working" banner at top centre of card */}
+            <View style={styles.activeBanner}>
+              <View style={styles.activeBannerDot} />
+              <Text style={styles.activeBannerText}>ONLY CIRCLED BUTTONS ARE WORKING RIGHT NOW</Text>
+              <View style={styles.activeBannerDot} />
+            </View>
+
             <View style={styles.actionGrid}>
               {quickActions.map((item, i) => (
                 <TouchableOpacity
@@ -371,12 +407,22 @@ export default function HomeScreen({ navigation }: any) {
                     else if (!item.active) setShowComingSoon(true);
                   }}
                 >
-                  <View style={item.active ? styles.activeRing : styles.inactiveWrap}>
-                    <View style={[styles.actionIconBox, { backgroundColor: item.active ? `${item.color}15` : "#F8FAFC" }]}>
-                      <item.icon size={22} color={item.active ? item.color : "#CBD5E1"} />
+                  {item.active ? (
+                    /* Active — orange circular ring around the icon box */
+                    <View style={styles.activeRing}>
+                      <View style={[styles.actionIconBox, { backgroundColor: `${item.color}15` }]}>
+                        <item.icon size={22} color={item.color} />
+                      </View>
                     </View>
-                  </View>
-                  <Text style={[styles.actionText, !item.active && { color: "#CBD5E1" }]}>{item.label}</Text>
+                  ) : (
+                    /* Inactive — normal icon, full colour, no ring, no fading */
+                    <View style={styles.inactiveWrap}>
+                      <View style={[styles.actionIconBox, { backgroundColor: `${item.color}12` }]}>
+                        <item.icon size={22} color={item.color} />
+                      </View>
+                    </View>
+                  )}
+                  <Text style={styles.actionText}>{item.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -545,4 +591,65 @@ const styles = StyleSheet.create({
   bottomTab: { position: "absolute", bottom: 0, width: "100%", height: 80, backgroundColor: "#FFF", flexDirection: "row", justifyContent: "space-around", alignItems: "center", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 10, elevation: 25, zIndex: 10, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 20 },
   tabItem: { alignItems: "center", paddingHorizontal: 8 },
   tabText: { fontSize: 9, fontWeight: "900", color: "#94A3B8", marginTop: 4 },
+
+  // ── Notification dropdown ──────────────────────────────────────────────
+  notifBadge:     { position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: 8, backgroundColor: "#EF4444", justifyContent: "center", alignItems: "center" },
+  notifBadgeText: { color: "#FFF", fontSize: 8, fontWeight: "900" },
+  notifOverlay:   { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 998 },
+  notifBackdrop:  { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
+  notifDropdown: {
+    position: "absolute",
+    top: Platform.OS === "web" ? 64 : 90,
+    right: 16,
+    width: 320,
+    backgroundColor: "#FFF",
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.16,
+    shadowRadius: 24,
+    elevation: 24,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  notifHeader: {
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+    paddingHorizontal: 18, paddingVertical: 14,
+    borderBottomWidth: 1, borderColor: "#F1F5F9",
+    backgroundColor: "#FAFAFA",
+  },
+  notifTitle:     { fontSize: 15, fontWeight: "900", color: "#1E293B" },
+  notifSubtitle:  { fontSize: 11, color: "#94A3B8", fontWeight: "600", marginTop: 1 },
+  notifEmpty:     { padding: 32, alignItems: "center", gap: 12 },
+  notifEmptyText: { color: "#94A3B8", fontWeight: "600", fontSize: 14 },
+  notifItem: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    paddingHorizontal: 18, paddingVertical: 13,
+    borderBottomWidth: 1, borderColor: "#F8FAFC",
+  },
+  notifIconBox:    { width: 36, height: 36, borderRadius: 12, justifyContent: "center", alignItems: "center" },
+  notifContent:    { flex: 1 },
+  notifItemTitle:  { fontSize: 13, fontWeight: "700", color: "#1E293B" },
+  notifItemDate:   { fontSize: 11, color: "#94A3B8", marginTop: 2 },
+  notifAmt:        { fontSize: 14, fontWeight: "900" },
+  notifFooter:     { paddingVertical: 13, alignItems: "center", backgroundColor: "#F8FAFC" },
+  notifFooterText: { fontSize: 13, color: "#0EA5E9", fontWeight: "800" },
+
+  // ── "Only circled buttons" banner ───────────────────────────────────────
+  activeBanner: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 8, marginBottom: 14,
+  },
+  activeBannerDot: {
+    width: 6, height: 6, borderRadius: 3,
+    backgroundColor: "#F97316",
+  },
+  activeBannerText: {
+    fontSize: 9, fontWeight: "900", color: "#F97316",
+    letterSpacing: 1.2, textAlign: "center",
+  },
+  // ── Active icon orange ring / inactive wrapper ─────────────────────────
+  activeRing:  { borderRadius: 32, borderWidth: 2, borderColor: "#F97316", padding: 3, marginBottom: 6 },
+  inactiveWrap:{ marginBottom: 6 },
 });
