@@ -82,6 +82,21 @@ export const authService = {
   getUserDashboard: async () => apiClient("/auth/user/dashboard", { method: "GET" }),
   getAdminDashboard: async () => apiClient("/auth/admin/dashboard", { method: "GET" }),
 
+
+  setTransactionPin: async (pin: string, confirmPin: string) => {
+    return apiClient("/auth/user/set-pin", {
+      method: "POST",
+      body: JSON.stringify({ pin, confirmPin }),
+    });
+  },
+
+  verifyTransactionPin: async (pin: string) => {
+    return apiClient("/auth/user/verify-pin", {
+      method: "POST",
+      body: JSON.stringify({ pin }),
+    });
+  },
+
   logout: async () => {
     await authStorage.clearAll();
     await AsyncStorage.multiRemove(["user_name", "user_mobile", "user_data"]);
