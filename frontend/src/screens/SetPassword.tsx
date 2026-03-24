@@ -151,10 +151,9 @@ const SetPassword = ({ navigation }: any) => {
     }
     setIsLoading(true);
     try {
-      // OTP was already verified in step 2 — the backend verifyOtp marked it used.
-      // For resetPassword, backend checks OTP again (or uses verified session).
-      // We pass the same OTP value since the backend validates it on reset too.
-      await authService.resetPassword(mobile, otpValue, newPassword, confirmPassword);
+      // OTP was already verified and consumed in step 2.
+      // resetPassword only needs mobile + new password — no OTP required.
+      await authService.resetPassword(mobile, newPassword, confirmPassword);
       setStatusMsg({ type: "success", text: "Password updated. Redirecting to login..." });
       setTimeout(() => {
         setIsLoading(false);

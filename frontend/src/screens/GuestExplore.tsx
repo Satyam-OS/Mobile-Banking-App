@@ -17,7 +17,6 @@ import {
     Alert,
     Animated,
     Dimensions,
-    Modal,
     SafeAreaView,
     ScrollView,
     StatusBar,
@@ -307,8 +306,8 @@ export default function GuestExplore({ navigation }: any) {
           </AnimatedButton>
         </View>
 
-        {/* MOBILE OTP MODAL */}
-        <Modal transparent animationType="fade" visible={showModal}>
+        {/* MOBILE OTP MODAL — inline overlay (Modal breaks phone frame on web) */}
+        {showModal && (
           <View style={styles.modalBg}>
             <View style={styles.modalCard}>
               <Phone size={28} color="#001F3F" />
@@ -339,10 +338,10 @@ export default function GuestExplore({ navigation }: any) {
               </TouchableOpacity>
             </View>
           </View>
-        </Modal>
+        )}
 
-        {/* SERVICE INFO MODAL */}
-        <Modal transparent animationType="slide" visible={!!selectedService}>
+        {/* SERVICE INFO MODAL — inline overlay */}
+        {!!selectedService && (
           <View style={styles.modalBg}>
             <View style={styles.infoModalCard}>
               <View style={styles.infoModalHeader}>
@@ -395,7 +394,7 @@ export default function GuestExplore({ navigation }: any) {
               </AnimatedButton>
             </View>
           </View>
-        </Modal>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -472,7 +471,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   gridItem: {
-    width: (width - 52) / 2,
+    width: "47%",
     backgroundColor: "#FFF",
     padding: 16,
     borderRadius: 24,
@@ -543,16 +542,20 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: { color: "#FFF", fontWeight: "900" },
   modalBg: {
-    flex: 1,
-    backgroundColor: "rgba(0,31,63,0.7)",
+    position: "absolute",
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: "rgba(0,31,63,0.75)",
     justifyContent: "center",
+    alignItems: "center",
     padding: 20,
+    zIndex: 100,
   },
   modalCard: {
     backgroundColor: "#FFF",
     padding: 24,
     borderRadius: 24,
     alignItems: "center",
+    width: "100%",
   },
   infoModalCard: {
     backgroundColor: "#FFF",

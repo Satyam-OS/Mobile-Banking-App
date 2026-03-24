@@ -27,7 +27,6 @@ import {
   Dimensions,
   Image,
   Keyboard,
-  Modal,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -772,8 +771,9 @@ export default function KYCOnboarding({ navigation }: any) {
         </View>
       </View>
 
-      <Modal transparent visible={showGender} animationType="slide">
+      {showGender && (
         <View style={styles.modalBg}>
+          <TouchableOpacity style={styles.modalBackdrop} onPress={() => setShowGender(false)} activeOpacity={1} />
           <View style={styles.modalCard}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>Select Gender</Text>
@@ -792,7 +792,7 @@ export default function KYCOnboarding({ navigation }: any) {
             ))}
           </View>
         </View>
-      </Modal>
+      )}
 
       {showDatePicker && Platform.OS !== "web" && (
         <DateTimePicker
@@ -817,7 +817,7 @@ export default function KYCOnboarding({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#F8FAFC" },
+  safeArea: { flex: 1, backgroundColor: "#F8FAFC", position: "relative" },
   header: {
     backgroundColor: "#0EA5E9",
     paddingHorizontal: 20,
@@ -1078,9 +1078,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   modalBg: {
-    flex: 1,
+    position: "absolute",
+    top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: "rgba(0,31,63,0.4)",
     justifyContent: "flex-end",
+    zIndex: 100,
+  },
+  modalBackdrop: {
+    position: "absolute",
+    top: 0, left: 0, right: 0, bottom: 0,
   },
   modalCard: {
     backgroundColor: "#FFF",
