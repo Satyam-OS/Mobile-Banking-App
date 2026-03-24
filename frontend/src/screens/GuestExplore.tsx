@@ -29,7 +29,8 @@ import {
 // Integrated your backend service
 import { authService } from "../services/authService";
 
-const { width } = Dimensions.get("window");
+const PHONE_W = 393;
+const CARD_W  = (PHONE_W - 52) / 2;  // 2 columns with padding
 
 const services = [
   {
@@ -468,10 +469,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: 12,
   },
   gridItem: {
-    width: "47%",
+    width: CARD_W,
+    marginBottom: 12,
     backgroundColor: "#FFF",
     padding: 16,
     borderRadius: 24,
