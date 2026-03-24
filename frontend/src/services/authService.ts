@@ -72,10 +72,10 @@ export const authService = {
     return data;
   },
 
-  resetPassword: async (mobile: string, newPassword: string, confirmPassword: string) => {
+  resetPassword: async (mobile: string, otp: string, newPassword: string, confirmPassword: string) => {
     return apiClient("/auth/auth/reset-password", {
       method: "POST",
-      body: JSON.stringify({ mobile, newPassword, confirmPassword }),
+      body: JSON.stringify({ mobile, otp, newPassword, confirmPassword }),
     }, false);
   },
 
