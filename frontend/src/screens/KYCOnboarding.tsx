@@ -27,6 +27,7 @@ import {
   Dimensions,
   Image,
   Keyboard,
+  Modal,
   Platform,
   SafeAreaView,
   ScrollView,
